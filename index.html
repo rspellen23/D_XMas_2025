@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deedra's Wheel of Christmas Time</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page">
+    <header class="hero">
+      <div class="title-block">
+        <p class="eyebrow">For Deedra • Holiday Gift</p>
+        <h1>Wheel of Christmas Time</h1>
+        <p class="lede">Spin gifts, answer prophecies, and sprint a snowy gauntlet with a dash of romance and the spirit of the White Tower.</p>
+        <p class="romance">Deedra, you are the guiding light on this snowy path—every gift is a wish for you.</p>
+        <div class="hero-actions">
+          <button id="startRun" class="btn primary">Start Run</button>
+          <button id="spinWheel" class="btn ghost">Spin the Wheel of Gifts</button>
+        </div>
+        <p class="hint">Flow: Spin for a bonus → Sprint to collect gifts & dodge snow → Answer a quick Wheel of Time prophecy quiz. Repeat turns to push your score.</p>
+      </div>
+      <div class="stats-card">
+        <div class="stat">
+          <span class="label">Score</span>
+          <span id="scoreDisplay" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Hearts</span>
+          <span id="livesDisplay" class="value">3</span>
+        </div>
+        <div class="stat">
+          <span class="label">Time</span>
+          <span id="timeDisplay" class="value">0s</span>
+        </div>
+        <div class="stat">
+          <span class="label">Bonus</span>
+          <span id="bonusDisplay" class="value">None</span>
+        </div>
+        <button id="toggleAudio" class="btn tiny">SFX: On</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel instructions">
+        <h2>How to Play</h2>
+        <ul>
+          <li>Spin the Wheel of Gifts to earn a round bonus: double points, slow shadows, shield, time boost, or romantic fireworks.</li>
+          <li>Start a Run: move with arrow keys or A/D to collect glowing gifts (Ajah-colored orbs) and avoid shadowspawn snowballs.</li>
+          <li>Runs are quick (about 30 seconds). Keep hearts above zero and stack score for Deedra’s perfect holiday.</li>
+          <li>Answer a Wheel of Time prophecy quiz after each run—correct answers add hearts or points.</li>
+          <li>Turn-based flow: Spin → Sprint → Quiz → Repeat. Beat your own prophecy.</li>
+        </ul>
+        <div class="lore">
+          <p><strong>Wheel of Time vibe:</strong> Ajah colors, heron-mark blade tokens, White Tower snow, Trolloc masks for danger.</p>
+          <p><strong>Holiday vibe:</strong> Northern lights gradient, warm gold ribbons, snowfall, and heart sparks for Deedra.</p>
+        </div>
+      </section>
+
+      <section class="panel playfield">
+        <canvas id="playfield" width="900" height="520"></canvas>
+        <div class="overlay" id="overlay">
+          <div id="message"></div>
+          <button id="quizButton" class="btn secondary">Answer Prophecy Quiz</button>
+        </div>
+      </section>
+
+      <section class="panel side">
+        <h2>Wheel of Gifts</h2>
+        <canvas id="wheelCanvas" width="260" height="260"></canvas>
+        <p id="wheelResult" class="wheel-result">Spin to receive a bonus gift.</p>
+        <h2>Quick Quiz</h2>
+        <div id="quizZone" class="quiz">
+          <p class="quiz-question">Answer after a run to channel more light.</p>
+          <div id="quizOptions" class="quiz-options"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
