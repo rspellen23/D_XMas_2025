@@ -1,101 +1,45 @@
 (() => {
   const canvas = document.getElementById('playfield');
   const ctx = canvas.getContext('2d');
-  const wheelCanvas = document.getElementById('wheelCanvas');
-  const wctx = wheelCanvas.getContext('2d');
+
   const startBtn = document.getElementById('startRun');
-  const spinBtn = document.getElementById('spinWheel');
-  const quizBtn = document.getElementById('quizButton');
-  const startGameBtn = document.getElementById('startGame');
-  const scoreEl = document.getElementById('scoreDisplay');
-  const livesEl = document.getElementById('livesDisplay');
-  const timeEl = document.getElementById('timeDisplay');
-  const bonusEl = document.getElementById('bonusDisplay');
-  const correctEl = document.getElementById('correctDisplay');
-  const messageEl = document.getElementById('message');
-  const overlayEl = document.getElementById('overlay');
-  const wheelResultEl = document.getElementById('wheelResult');
-  const quizZone = document.getElementById('quizZone');
-  const quizOptions = document.getElementById('quizOptions');
+  const startMenuBtn = document.getElementById('startGame');
+  const restartBtn = document.getElementById('restartButton');
   const toggleAudioBtn = document.getElementById('toggleAudio');
   const themeToggleBtn = document.getElementById('themeToggle');
-  const cutsceneEl = document.getElementById('cutscene');
-  const restartBtn = document.getElementById('restartButton');
   const startMenuEl = document.getElementById('startMenu');
+  const cutsceneEl = document.getElementById('cutscene');
+  const overlayEl = document.getElementById('overlay');
+  const messageEl = document.getElementById('message');
+
+  const scoreEl = document.getElementById('scoreDisplay');
+  const livesEl = document.getElementById('livesDisplay');
+  const waveEl = document.getElementById('waveDisplay');
+  const channelEl = document.getElementById('channelDisplay');
 
   const state = {
-    score: 0,
-    lives: 3,
-    timeLeft: 0,
-    spins: 0,
     started: false,
-    runActive: false,
     finished: false,
-    runsCompleted: 0,
-    correctAnswers: 0,
-    goalAnswers: 5,
-    bonus: null,
-    bonusTime: 0,
-    pendingTimeBoost: 0,
-    gifts: [],
-    hazards: [],
+    score: 0,
+    lives: 4,
+    wave: 1,
+    maxWaves: 3,
+    channel: 100,
+    channelCooldown: 0,
+    slashCooldown: 0,
+    trollocs: [],
+    spawnRemaining: 0,
+    projectiles: [],
+    slashes: [],
     particles: [],
-    giftTimer: 0.5,
-    hazardTimer: 1.2,
+    spawnTimer: 0,
     input: { left: false, right: false },
-    player: { x: canvas.width / 2, y: canvas.height - 60, w: 48, h: 28, speed: 320, shield: 0 },
-    wheelAngle: 0,
-    wheelSpin: { spinning: false, start: 0, duration: 1400, from: 0, to: 0 },
-    soundOn: true,
-    quizReady: false,
-    activeQuestion: null
+    players: {
+      aesSedai: { x: canvas.width * 0.4, y: canvas.height - 90, speed: 220, size: 44 },
+      warder: { x: canvas.width * 0.6, y: canvas.height - 80, speed: 240, size: 48 }
+    },
+    soundOn: true
   };
-
-  const wheelSegments = [
-    { label: 'Prophecy', effect: 'quiz', color: '#f0c35b' },
-    { label: 'Score Surge', effect: 'double', color: '#0e7c4b' },
-    { label: 'Heart Bloom', effect: 'life', color: '#f8f8f8' },
-    { label: 'Shadow Bite', effect: 'hazard', color: '#b4002f' },
-    { label: 'Romantic Fireworks', effect: 'fireworks', color: '#ff6b8f' },
-    { label: 'Gift Cascade', effect: 'cascade', color: '#e8d5a9' }
-  ];
-
-  const quizBank = [
-    {
-      q: 'Who guides the Two Rivers youths at the start of the story?',
-      options: ['Moiraine Damodred', 'Egwene al\'Vere', 'Elaida'],
-      answer: 'Moiraine Damodred',
-      reward: { type: 'score', value: 40 }
-    },
-    {
-      q: 'What title is given to Rand al’Thor?',
-      options: ['The Wolf King', 'The Dragon Reborn', 'Prince of Ravens'],
-      answer: 'The Dragon Reborn',
-      reward: { type: 'life', value: 1 }
-    },
-    {
-      q: 'Which Ajah is known for battle readiness?',
-      options: ['Green Ajah', 'Brown Ajah', 'White Ajah'],
-      answer: 'Green Ajah',
-      reward: { type: 'score', value: 30 }
-    },
-    {
-      q: 'The male half of the One Power is called?',
-      options: ['saidar', 'saidar and saidin are the same', 'saidin'],
-      answer: 'saidin',
-      reward: { type: 'score', value: 25 }
-    },
-    {
-      q: 'Who leads the Whitecloaks during early events?',
-      options: ['Galad Damodred', 'Geofram Bornhald', 'Pedron Niall'],
-      answer: 'Pedron Niall',
-      reward: { type: 'life', value: 1 }
-    }
-  ];
-
-  const ajahColors = ['#a32c3f', '#3c6cf4', '#1e715a', '#c79c1b', '#7c5bff', '#c43c8b', '#f6c667'];
-
-  const fireworkPalette = ['#ff4f7d', '#f6c667', '#5ac8fa', '#7c5bff', '#1e715a'];
 
   function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
@@ -111,7 +55,7 @@
     const osc = ctxAudio.createOscillator();
     const gain = ctxAudio.createGain();
     osc.frequency.value = freq;
-    osc.type = 'sine';
+    osc.type = 'square';
     gain.gain.value = 0.08;
     osc.connect(gain);
     gain.connect(ctxAudio.destination);
@@ -124,297 +68,367 @@
   function updateStats() {
     scoreEl.textContent = Math.round(state.score);
     livesEl.textContent = state.lives;
-    timeEl.textContent = `${state.spins} spins`;
-    bonusEl.textContent = state.bonus ? state.bonus.label : 'None';
-    correctEl.textContent = `${state.correctAnswers} / ${state.goalAnswers}`;
+    waveEl.textContent = state.wave;
+    channelEl.textContent = `${Math.round(state.channel)}%`;
   }
 
-  function startRun() {
-    if (state.finished) return;
+  function resetGame() {
+    state.started = false;
+    state.finished = false;
+    state.score = 0;
+    state.lives = 4;
+    state.wave = 1;
+    state.channel = 100;
+    state.channelCooldown = 0;
+    state.slashCooldown = 0;
+    state.trollocs = [];
+    state.projectiles = [];
+    state.slashes = [];
+    state.particles = [];
+    state.spawnTimer = 0;
+    state.spawnRemaining = 0;
+    state.players.aesSedai.x = canvas.width * 0.4;
+    state.players.aesSedai.y = canvas.height - 90;
+    state.players.warder.x = canvas.width * 0.6;
+    state.players.warder.y = canvas.height - 80;
+    startMenuEl.style.display = 'flex';
     cutsceneEl.style.display = 'none';
-    if (!state.started) {
-      state.started = true;
-      startMenuEl.style.display = 'none';
-      spinBtn.disabled = false;
-    }
-    state.runActive = false;
-    state.quizReady = false;
+    messageEl.textContent = 'Begin when ready.';
     overlayEl.style.pointerEvents = 'none';
-    quizBtn.style.display = 'none';
-    messageEl.textContent = 'Spin the Wheel to weave omens. Five truths reveal the vow.';
     updateStats();
   }
 
-  function applyBonus(segment) {
-    state.bonus = { type: segment.effect, label: segment.label };
-    wheelResultEl.textContent = `Gift received: ${segment.label}`;
-    state.bonusTime = segment.effect === 'double' ? 22 : 0;
-
-    switch (segment.effect) {
-      case 'double':
-        break;
-      case 'life':
-        state.lives += 1;
-        break;
-      case 'fireworks':
-        spawnFireworks(canvas.width / 2, canvas.height / 3);
-        break;
-      case 'cascade':
-        state.score += 40;
-        break;
-      case 'hazard':
-        state.lives = Math.max(0, state.lives - 1);
-        messageEl.textContent = 'Shadow Bite! Ray steps between you and the dark; a heart dims.';
-        break;
-      case 'quiz':
-        state.quizReady = true;
-        overlayEl.style.pointerEvents = 'auto';
-        quizBtn.style.display = 'inline-flex';
-        messageEl.textContent = 'Prophecy appears—answer to weave the light.';
-        presentQuiz();
-        return;
-      default:
-        break;
-    }
-    if (!state.quizReady) {
-      overlayEl.style.pointerEvents = 'none';
-      quizBtn.style.display = 'none';
-    }
-    updateStats();
-  }
-
-  function spinWheel() {
+  function startGame() {
     if (state.finished) return;
-    if (!state.started) return;
-    if (state.wheelSpin.spinning) return;
-    state.spins += 1;
-    const idx = Math.floor(Math.random() * wheelSegments.length);
-    const turns = 4 + Math.floor(Math.random() * 3);
-    const segmentAngle = (Math.PI * 2) / wheelSegments.length;
-    const targetAngle = (Math.PI / 2) - idx * segmentAngle; // pointer at top
-    state.wheelSpin = {
-      spinning: true,
-      start: performance.now(),
-      duration: 1800,
-      from: state.wheelAngle,
-      to: state.wheelAngle + turns * Math.PI * 2 + targetAngle
-    };
-    setTimeout(() => {
-      applyBonus(wheelSegments[idx]);
-      playTone(660, 0.25);
-    }, 1800);
+    state.started = true;
+    startMenuEl.style.display = 'none';
+    cutsceneEl.style.display = 'none';
+    state.trollocs = [];
+    state.projectiles = [];
+    state.slashes = [];
+    state.particles = [];
+    state.spawnTimer = 0;
+    state.wave = 1;
+    state.spawnRemaining = baseWaveCount(state.wave);
+    state.lives = 4;
+    state.score = 0;
+    messageEl.textContent = 'Defend together. Channel (Space) and Slash (F).';
+    updateStats();
   }
 
-  function drawWheel(ts) {
-    const { width, height } = wheelCanvas;
-    wctx.clearRect(0, 0, width, height);
-    const cx = width / 2;
-    const cy = height / 2;
-    const radius = Math.min(cx, cy) - 8;
-    const segmentAngle = (Math.PI * 2) / wheelSegments.length;
+  function nextWave() {
+    state.wave += 1;
+    state.spawnTimer = 0;
+    state.spawnRemaining = baseWaveCount(state.wave);
+    state.trollocs = [];
+    state.projectiles = [];
+    state.slashes = [];
+    if (state.wave > state.maxWaves) {
+      triggerEnding();
+    } else {
+      messageEl.textContent = `Wave ${state.wave}! Trollocs gather—hold your ground.`;
+      playTone(640, 0.18);
+    }
+    updateStats();
+  }
 
-    if (state.wheelSpin.spinning) {
-      const elapsed = ts - state.wheelSpin.start;
-      const t = clamp(elapsed / state.wheelSpin.duration, 0, 1);
-      const ease = 1 - Math.pow(1 - t, 3);
-      state.wheelAngle = state.wheelSpin.from + (state.wheelSpin.to - state.wheelSpin.from) * ease;
-      if (t >= 1) {
-        state.wheelSpin.spinning = false;
-        state.wheelAngle = state.wheelSpin.to;
+  function triggerEnding() {
+    state.finished = true;
+    messageEl.textContent = 'The last Trolloc falls.';
+    cutsceneEl.style.display = 'flex';
+  }
+
+  function baseWaveCount(wave) {
+    return 6 + wave * 3;
+  }
+
+  function spawnTrolloc() {
+    const size = rand(30, 44);
+    state.trollocs.push({
+      x: rand(40, canvas.width - 40),
+      y: -size,
+      size,
+      speed: rand(60, 110) + state.wave * 6,
+      hp: 2 + state.wave,
+      swingTimer: rand(0.8, 1.6)
+    });
+  }
+
+  function castChannel() {
+    if (state.channel < 20 || state.channelCooldown > 0) return;
+    state.channel -= 20;
+    state.channelCooldown = 0.35;
+    const { x, y } = state.players.aesSedai;
+    state.projectiles.push({
+      x,
+      y: y - 20,
+      vx: 0,
+      vy: -360,
+      size: 14,
+      type: 'light'
+    });
+    playTone(760, 0.12);
+  }
+
+  function slash() {
+    if (state.slashCooldown > 0) return;
+    state.slashCooldown = 0.45;
+    const { x, y } = state.players.warder;
+    state.slashes.push({
+      x,
+      y,
+      r: 50,
+      life: 0.18
+    });
+    playTone(320, 0.08);
+  }
+
+  function update(dt) {
+    if (!state.started || state.finished) return;
+
+    // regen channel
+    state.channel = clamp(state.channel + dt * 12, 0, 100);
+    if (state.channelCooldown > 0) state.channelCooldown -= dt;
+    if (state.slashCooldown > 0) state.slashCooldown -= dt;
+
+    // movement
+    const moveDir = (state.input.left ? -1 : 0) + (state.input.right ? 1 : 0);
+    state.players.aesSedai.x = clamp(state.players.aesSedai.x + moveDir * state.players.aesSedai.speed * dt, 40, canvas.width - 40);
+    state.players.warder.x = clamp(state.players.warder.x + moveDir * state.players.warder.speed * dt, 40, canvas.width - 40);
+
+    // spawn trolls
+    state.spawnTimer -= dt;
+    const spawnInterval = Math.max(0.9 - state.wave * 0.1, 0.35);
+    if (state.spawnTimer <= 0 && state.spawnRemaining > 0) {
+      spawnTrolloc();
+      state.spawnRemaining -= 1;
+      state.spawnTimer = spawnInterval;
+    }
+
+    // update trollocs
+    for (const t of state.trollocs) {
+      t.y += t.speed * dt;
+      t.swingTimer -= dt;
+      if (t.swingTimer <= 0) {
+        // small zig
+        t.x += rand(-40, 40);
+        t.swingTimer = rand(0.8, 1.6);
       }
     }
 
-    for (let i = 0; i < wheelSegments.length; i++) {
-      const start = i * segmentAngle + state.wheelAngle;
-      const end = start + segmentAngle;
-      wctx.beginPath();
-      wctx.moveTo(cx, cy);
-      wctx.arc(cx, cy, radius, start, end);
-      wctx.closePath();
-      wctx.fillStyle = wheelSegments[i].color;
-      wctx.fill();
-      wctx.lineWidth = 3;
-      wctx.strokeStyle = 'rgba(0,0,0,0.35)';
-      wctx.stroke();
+    // projectiles
+    for (const p of state.projectiles) {
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+    state.projectiles = state.projectiles.filter((p) => p.y > -20 && p.y < canvas.height + 20);
 
-      // labels
-      const mid = start + segmentAngle / 2;
-      wctx.save();
-      wctx.translate(cx + Math.cos(mid) * (radius * 0.65), cy + Math.sin(mid) * (radius * 0.65));
-      wctx.rotate(mid + Math.PI / 2);
-      wctx.fillStyle = '#0b0f1c';
-      wctx.font = 'bold 12px Space Grotesk, sans-serif';
-      wctx.textAlign = 'center';
-      wctx.fillText(wheelSegments[i].label, 0, 4);
-      wctx.restore();
+    // slashes
+    for (const s of state.slashes) {
+      s.life -= dt;
+    }
+    state.slashes = state.slashes.filter((s) => s.life > 0);
+
+    // collisions: projectiles vs trollocs
+    for (let i = state.trollocs.length - 1; i >= 0; i--) {
+      const t = state.trollocs[i];
+      for (let j = state.projectiles.length - 1; j >= 0; j--) {
+        const p = state.projectiles[j];
+        const dx = t.x - p.x;
+        const dy = t.y - p.y;
+        if (Math.hypot(dx, dy) < t.size * 0.6 + p.size) {
+          t.hp -= 2;
+          state.projectiles.splice(j, 1);
+          spawnHit(t.x, t.y, '#f0c35b');
+          if (t.hp <= 0) {
+            state.score += 25;
+            state.trollocs.splice(i, 1);
+          }
+          break;
+        }
+      }
     }
 
-    // center
-    wctx.beginPath();
-    wctx.arc(cx, cy, 34, 0, Math.PI * 2);
-    wctx.fillStyle = '#0b0f1c';
-    wctx.fill();
-    wctx.lineWidth = 3;
-    wctx.strokeStyle = '#f6c667';
-    wctx.stroke();
-    wctx.fillStyle = '#f6c667';
-    wctx.font = '700 13px Space Grotesk, sans-serif';
-    wctx.textAlign = 'center';
-    wctx.fillText('SPIN', cx, cy + 4);
+    // slashes vs trollocs
+    for (let i = state.trollocs.length - 1; i >= 0; i--) {
+      const t = state.trollocs[i];
+      for (const s of state.slashes) {
+        const dx = t.x - s.x;
+        const dy = t.y - s.y;
+        if (Math.hypot(dx, dy) < s.r + t.size * 0.5) {
+          t.hp -= 3;
+          spawnHit(t.x, t.y, '#ff6b8f');
+          if (t.hp <= 0) {
+            state.score += 25;
+            state.trollocs.splice(i, 1);
+          }
+          break;
+        }
+      }
+    }
 
-    // outer outline for cel-shade vibe
-    wctx.lineWidth = 5;
-    wctx.strokeStyle = 'rgba(0,0,0,0.45)';
-    wctx.beginPath();
-    wctx.arc(cx, cy, radius + 4, 0, Math.PI * 2);
-    wctx.stroke();
+    // trollocs reach bottom or hit players
+    for (let i = state.trollocs.length - 1; i >= 0; i--) {
+      const t = state.trollocs[i];
+      if (t.y > canvas.height - 60) {
+        state.lives -= 1;
+        spawnHit(t.x, t.y, '#b4002f');
+        state.trollocs.splice(i, 1);
+        messageEl.textContent = 'A Trolloc slipped through! Hold fast.';
+        if (state.lives <= 0) {
+          state.finished = true;
+          cutsceneEl.style.display = 'flex';
+          messageEl.textContent = 'They fall together—try again for their vow.';
+        }
+      }
+    }
 
-    // pointer
-    wctx.beginPath();
-    wctx.moveTo(cx, cy - radius - 6);
-    wctx.lineTo(cx - 10, cy - radius + 14);
-    wctx.lineTo(cx + 10, cy - radius + 14);
-    wctx.closePath();
-    wctx.fillStyle = '#ff4f7d';
-    wctx.fill();
-    wctx.strokeStyle = '#ffe9ff';
-    wctx.stroke();
+    // check wave completion
+    if (state.spawnRemaining === 0 && state.trollocs.length === 0 && !state.finished) {
+      nextWave();
+    }
+
+    updateStats();
   }
 
-  function spawnGift() {
-    const x = rand(30, canvas.width - 30);
-    const r = rand(10, 16);
-    const speed = rand(80, 140);
-    const color = ajahColors[Math.floor(Math.random() * ajahColors.length)];
-    state.gifts.push({ x, y: -20, r, speed, color, value: 10 });
-  }
-
-  function spawnHazard() {
-    const x = rand(30, canvas.width - 30);
-    const r = rand(14, 20);
-    const speed = rand(110, 170);
-    state.hazards.push({ x, y: -20, r, speed, wobble: rand(0.5, 1.2) });
-  }
-
-  function spawnFireworks(x, y) {
-    for (let i = 0; i < 45; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = rand(80, 200);
+  function spawnHit(x, y, color) {
+    for (let i = 0; i < 12; i++) {
+      const ang = Math.random() * Math.PI * 2;
+      const sp = rand(40, 110);
       state.particles.push({
         x,
         y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        life: rand(0.8, 1.4),
-        color: fireworkPalette[i % fireworkPalette.length]
+        vx: Math.cos(ang) * sp,
+        vy: Math.sin(ang) * sp,
+        life: rand(0.4, 0.8),
+        color
       });
     }
   }
 
-  function update(dt) {
-    if (state.bonusTime > 0) {
-      state.bonusTime -= dt;
-      if (state.bonusTime <= 0) {
-        state.bonus = null;
-      }
-    }
-
-    // particles
+  function updateParticles(dt) {
     for (let i = state.particles.length - 1; i >= 0; i--) {
       const p = state.particles[i];
       p.life -= dt;
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy += 40 * dt;
+      p.vy += 30 * dt;
       if (p.life <= 0) state.particles.splice(i, 1);
     }
-
-    updateStats();
   }
 
   function drawBackground(ts) {
-    ctx.fillStyle = '#050815';
+    ctx.fillStyle = '#0a0a0d';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // aurora gradient
-    const aurora = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
-    aurora.addColorStop(0, 'rgba(90, 210, 250, 0.25)');
-    aurora.addColorStop(0.45, 'rgba(30, 113, 90, 0.24)');
-    aurora.addColorStop(1, 'rgba(255, 185, 88, 0.22)');
-    ctx.fillStyle = aurora;
+    const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    grad.addColorStop(0, 'rgba(176,0,47,0.16)');
+    grad.addColorStop(0.5, 'rgba(14,124,75,0.18)');
+    grad.addColorStop(1, 'rgba(240,195,91,0.18)');
+    ctx.fillStyle = grad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // grid lines for modern feel
+    // grid
     ctx.strokeStyle = 'rgba(255,255,255,0.05)';
     ctx.lineWidth = 1;
     const spacing = 70;
     ctx.beginPath();
     for (let x = 0; x <= canvas.width; x += spacing) {
       ctx.moveTo(x, canvas.height);
-      ctx.lineTo(x - 80, canvas.height - 180);
+      ctx.lineTo(x - 100, canvas.height - 220);
     }
-    for (let y = canvas.height; y >= canvas.height - 180; y -= spacing) {
-      ctx.moveTo(-40, y);
-      ctx.lineTo(canvas.width, y - 80);
+    for (let y = canvas.height; y >= canvas.height - 220; y -= spacing) {
+      ctx.moveTo(-50, y);
+      ctx.lineTo(canvas.width, y - 110);
     }
     ctx.stroke();
 
-    // snowfall dots
+    // snowfall
     for (let i = 0; i < 90; i++) {
-      const x = (i * 73 + ts * 0.02) % canvas.width;
-      const y = (i * 41 + ts * 0.04) % canvas.height;
+      const x = (i * 71 + ts * 0.02) % canvas.width;
+      const y = (i * 37 + ts * 0.04) % canvas.height;
       ctx.fillStyle = 'rgba(255,255,255,0.2)';
       ctx.fillRect(x, y, 2, 2);
     }
   }
 
-  function drawPlayer() {
-    ctx.save();
-    ctx.translate(state.player.x, state.player.y);
-    const grad = ctx.createLinearGradient(-state.player.w / 2, 0, state.player.w / 2, 0);
-    grad.addColorStop(0, '#ffd970');
-    grad.addColorStop(1, '#5ac8fa');
-    ctx.fillStyle = grad;
+  function drawCelRect(x, y, w, h, fill, outline = '#000', radius = 8) {
+    ctx.fillStyle = fill;
+    ctx.strokeStyle = outline;
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.roundRect(-state.player.w / 2, -state.player.h / 2, state.player.w, state.player.h, 10);
+    ctx.roundRect(x - w / 2, y - h / 2, w, h, radius);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-    ctx.lineWidth = 2;
     ctx.stroke();
+  }
 
-    ctx.fillStyle = '#ff4f7d';
+  function drawAesSedai(p) {
+    drawCelRect(p.x, p.y, p.size, p.size * 1.2, '#f8f8f8', '#0a0a0d', 10);
+    ctx.fillStyle = '#0e7c4b';
+    ctx.fillRect(p.x - p.size * 0.2, p.y - p.size * 0.6, p.size * 0.4, p.size * 0.4);
+    ctx.strokeStyle = '#b4002f';
+    ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.ellipse(0, -state.player.h / 2, 18, 10, 0, 0, Math.PI, true);
+    ctx.moveTo(p.x, p.y - p.size * 0.7);
+    ctx.lineTo(p.x, p.y - p.size * 0.3);
+    ctx.stroke();
+  }
+
+  function drawWarder(p) {
+    drawCelRect(p.x, p.y, p.size, p.size * 1.1, '#0e7c4b', '#0a0a0d', 10);
+    ctx.fillStyle = '#f0c35b';
+    ctx.fillRect(p.x - p.size * 0.25, p.y - p.size * 0.4, p.size * 0.5, p.size * 0.3);
+    // blade arc
+    ctx.strokeStyle = '#f8f8f8';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(p.x + p.size * 0.4, p.y - p.size * 0.2, p.size * 0.7, -0.4, 1.2);
+    ctx.stroke();
+  }
+
+  function drawTrolloc(t) {
+    ctx.fillStyle = '#1a1a21';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.roundRect(t.x - t.size / 2, t.y - t.size / 2, t.size, t.size * 1.2, 8);
     ctx.fill();
-    if (state.player.shield > 0) {
-      ctx.strokeStyle = '#5ac8fa';
+    ctx.stroke();
+    // horns
+    ctx.strokeStyle = '#b4002f';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(t.x - t.size * 0.25, t.y - t.size * 0.5);
+    ctx.lineTo(t.x - t.size * 0.45, t.y - t.size * 0.9);
+    ctx.moveTo(t.x + t.size * 0.25, t.y - t.size * 0.5);
+    ctx.lineTo(t.x + t.size * 0.45, t.y - t.size * 0.9);
+    ctx.stroke();
+    // eyes
+    ctx.fillStyle = '#f0c35b';
+    ctx.beginPath();
+    ctx.arc(t.x - t.size * 0.15, t.y - t.size * 0.2, 4, 0, Math.PI * 2);
+    ctx.arc(t.x + t.size * 0.15, t.y - t.size * 0.2, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawProjectiles() {
+    for (const p of state.projectiles) {
+      ctx.fillStyle = '#f0c35b';
+      ctx.strokeStyle = '#000';
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(0, 0, state.player.w * 0.6, 0, Math.PI * 2);
+      ctx.roundRect(p.x - p.size / 2, p.y - p.size, p.size, p.size * 1.6, 6);
+      ctx.fill();
       ctx.stroke();
     }
-    ctx.restore();
   }
 
-  function drawGifts() {
-    for (const g of state.gifts) {
-      const grad = ctx.createRadialGradient(g.x, g.y, g.r * 0.2, g.x, g.y, g.r);
-      grad.addColorStop(0, '#fff');
-      grad.addColorStop(1, g.color);
-      ctx.fillStyle = grad;
+  function drawSlashes() {
+    for (const s of state.slashes) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 6;
       ctx.beginPath();
-      ctx.arc(g.x, g.y, g.r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  function drawHazards() {
-    for (const h of state.hazards) {
-      ctx.fillStyle = 'rgba(20, 26, 40, 0.8)';
-      ctx.beginPath();
-      ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#ff4f7d';
+      ctx.arc(s.x, s.y, s.r, -0.8, 0.8);
       ctx.stroke();
     }
   }
@@ -432,137 +446,13 @@
     }
   }
 
-  function drawWheelAura(ts) {
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const baseRadius = Math.min(canvas.width, canvas.height) * 0.32;
-    const pulse = Math.sin(ts * 0.003) * 6;
-
-    const ringGrad = ctx.createRadialGradient(cx, cy, baseRadius * 0.4, cx, cy, baseRadius + 30);
-    ringGrad.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
-    ringGrad.addColorStop(1, 'rgba(0,0,0,0.55)');
-    ctx.fillStyle = ringGrad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, baseRadius + 36, 0, Math.PI * 2);
-    ctx.fill();
-
-    // main ring
-    ctx.lineWidth = 16;
-    ctx.strokeStyle = 'rgba(255, 217, 112, 0.35)';
-    ctx.beginPath();
-    ctx.arc(cx, cy, baseRadius + pulse, 0, Math.PI * 2);
-    ctx.stroke();
-
-    // inner ring with motion
-    const innerRadius = baseRadius * 0.7;
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate((ts / 1200) % (Math.PI * 2));
-    for (let i = 0; i < wheelSegments.length; i++) {
-      ctx.beginPath();
-      ctx.strokeStyle = `${wheelSegments[i].color}44`;
-      ctx.lineWidth = 10;
-      ctx.arc(0, 0, innerRadius, i * ((Math.PI * 2) / wheelSegments.length), (i + 0.6) * ((Math.PI * 2) / wheelSegments.length));
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // pointer glow
-    ctx.fillStyle = 'rgba(255, 95, 143, 0.28)';
-    ctx.beginPath();
-    ctx.arc(cx, cy - innerRadius - 24, 16, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
   function drawUI() {
-    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
     ctx.font = '700 16px Space Grotesk, sans-serif';
-    ctx.fillText(`Deedra's Score: ${Math.round(state.score)}`, 20, 28);
-    ctx.fillText(`Hearts: ${state.lives}`, 20, 52);
-    ctx.fillText(`Spins: ${state.spins}`, 20, 76);
-    if (state.bonus) {
-      ctx.fillText(`Bonus: ${state.bonus.label}`, 20, 100);
-    }
-  }
-
-  function presentQuiz() {
-    if (!state.quizReady) return;
-    const question = quizBank[Math.floor(Math.random() * quizBank.length)];
-    state.activeQuestion = question;
-    quizOptions.innerHTML = '';
-    quizZone.querySelector('.quiz-question').textContent = question.q;
-    question.options.forEach((opt) => {
-      const btn = document.createElement('button');
-      btn.className = 'btn ghost';
-      btn.textContent = opt;
-      btn.onclick = () => handleAnswer(opt);
-      quizOptions.appendChild(btn);
-    });
-  }
-
-  function handleAnswer(selected) {
-    if (!state.activeQuestion) return;
-    const correct = selected === state.activeQuestion.answer;
-    if (correct) {
-      if (state.activeQuestion.reward.type === 'score') {
-        state.score += state.activeQuestion.reward.value;
-      } else if (state.activeQuestion.reward.type === 'life') {
-        state.lives += state.activeQuestion.reward.value;
-      }
-      state.correctAnswers += 1;
-      messageEl.textContent = `Correct! ${state.activeQuestion.answer} — the Pattern glows warmer.`;
-      spawnFireworks(canvas.width / 2, canvas.height / 4);
-    } else {
-      messageEl.textContent = 'Not quite. The Pattern weaves on—try another spin!';
-    }
-    quizOptions.innerHTML = '';
-    state.activeQuestion = null;
-    state.quizReady = false;
-    quizBtn.style.display = 'none';
-    overlayEl.style.pointerEvents = 'none';
-    checkEnding();
-    updateStats();
-  }
-
-  function checkEnding() {
-    const milestoneReached = state.correctAnswers >= state.goalAnswers;
-    if (!milestoneReached || state.finished) return;
-    state.finished = true;
-    state.runActive = false;
-    overlayEl.style.pointerEvents = 'auto';
-    quizBtn.style.display = 'none';
-    startBtn.disabled = true;
-    spinBtn.disabled = true;
-    cutsceneEl.style.display = 'flex';
-    messageEl.textContent = 'The turning completes. Take in the moment.';
-  }
-
-  function resetGame() {
-    state.score = 0;
-    state.lives = 3;
-    state.timeLeft = 0;
-    state.spins = 0;
-    state.runActive = false;
-    state.finished = false;
-    state.runsCompleted = 0;
-    state.correctAnswers = 0;
-    state.started = false;
-    state.bonus = null;
-    state.bonusTime = 0;
-    state.pendingTimeBoost = 0;
-    state.gifts = [];
-    state.hazards = [];
-    state.particles = [];
-    state.player.shield = 0;
-    startBtn.disabled = false;
-    spinBtn.disabled = false;
-    cutsceneEl.style.display = 'none';
-    startMenuEl.style.display = 'flex';
-    overlayEl.style.pointerEvents = 'none';
-    quizBtn.style.display = 'none';
-    wheelResultEl.textContent = 'Spin to receive a bonus gift.';
-    messageEl.textContent = 'Spin the Wheel to pull omens and gifts. Answer prophecies to reach the ending.';
-    updateStats();
+    ctx.fillText(`Score: ${Math.round(state.score)}`, 18, 26);
+    ctx.fillText(`Hearts: ${state.lives}`, 18, 48);
+    ctx.fillText(`Wave: ${state.wave}/${state.maxWaves}`, 18, 70);
+    ctx.fillText(`Channel: ${Math.round(state.channel)}%`, 18, 92);
   }
 
   function gameLoop(ts) {
@@ -570,21 +460,19 @@
     const dt = Math.min(0.05, (now - (gameLoop.last || now)) / 1000);
     gameLoop.last = now;
     update(dt);
+    updateParticles(dt);
     drawBackground(now);
-    drawWheelAura(now);
     drawParticles();
+    drawProjectiles();
+    drawSlashes();
+    for (const t of state.trollocs) drawTrolloc(t);
+    drawAesSedai(state.players.aesSedai);
+    drawWarder(state.players.warder);
     drawUI();
-    drawWheel(now);
     requestAnimationFrame(gameLoop);
   }
 
   function initEvents() {
-    startBtn.addEventListener('click', startRun);
-    startGameBtn.addEventListener('click', startRun);
-    spinBtn.addEventListener('click', spinWheel);
-    quizBtn.addEventListener('click', () => {
-      presentQuiz();
-    });
     toggleAudioBtn.addEventListener('click', () => {
       state.soundOn = !state.soundOn;
       toggleAudioBtn.textContent = `SFX: ${state.soundOn ? 'On' : 'Off'}`;
@@ -594,12 +482,15 @@
       const lightOn = document.body.classList.contains('theme-light');
       themeToggleBtn.textContent = lightOn ? 'Switch to Dark' : 'Switch to Light';
     });
+    startBtn.addEventListener('click', startGame);
+    startMenuBtn.addEventListener('click', startGame);
     restartBtn.addEventListener('click', resetGame);
 
     window.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') state.input.left = true;
       if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') state.input.right = true;
-      if (e.key === ' ' && !state.runActive) startRun();
+      if (e.code === 'Space') castChannel();
+      if (e.key === 'f' || e.key === 'F') slash();
     });
     window.addEventListener('keyup', (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') state.input.left = false;
@@ -609,9 +500,10 @@
 
   function init() {
     initEvents();
-    messageEl.textContent = 'Spin the Wheel to pull omens and gifts. Answer prophecies to reach the ending.';
-    quizBtn.style.display = 'none';
-    spinBtn.disabled = true;
+    messageEl.textContent = 'Begin when ready.';
+    overlayEl.style.pointerEvents = 'none';
+    cutsceneEl.style.display = 'none';
+    updateStats();
     requestAnimationFrame(gameLoop);
   }
 

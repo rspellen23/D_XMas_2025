@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Deedra's Wheel of Christmas Time</title>
+  <title>Snowbound Vow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
@@ -12,9 +12,16 @@
   <body>
   <div class="start-menu" id="startMenu">
     <div class="start-card">
+      <div class="start-logo">
+        <div class="logo-ring"></div>
+        <div class="logo-text">
+          <span>Snowbound</span>
+          <strong>Vow</strong>
+        </div>
+      </div>
       <p class="eyebrow">Aes Sedai & Warder</p>
       <h2>Deedra & Ray</h2>
-      <p class="lede">Spin the Wheel to weave omens, gather hearts, and answer prophecies. Reach five truths to unlock their shared vow beneath the falling snow.</p>
+      <p class="lede">Channel and strike together to drive back the Trollocs. Survive the waves to share their vow beneath the falling snow.</p>
       <div class="start-actions">
         <button id="startGame" class="btn primary">Begin the Journey</button>
       </div>
@@ -26,14 +33,13 @@
     <header class="hero">
       <div class="title-block">
         <p class="eyebrow">For Deedra • Holiday Gift</p>
-        <h1>Wheel of Christmas Bonds</h1>
-        <p class="lede">Spin omens, earn gifts, and answer prophecies in a snowy Wheel of Time moment for Deedra and her Warder, Ray.</p>
-        <p class="romance">Deedra, you are the calm light; Ray is the steady shield. Every turn of the Wheel is a wish for you.</p>
+        <h1>Snowbound Vow</h1>
+        <p class="lede">Deedra (Aes Sedai) and Ray (her Warder) stand against Trollocs in the snow—channeling light and steel together.</p>
+        <p class="romance">Two hearts, one bond. Their power and blades keep the night at bay.</p>
         <div class="hero-actions">
-          <button id="startRun" class="btn primary">Start Journey</button>
-          <button id="spinWheel" class="btn ghost" disabled>Spin the Wheel</button>
+          <button id="startRun" class="btn primary">Start Battle</button>
         </div>
-        <p class="hint">Flow: Start → Spin the Wheel → Resolve the omen → Answer a prophecy when prompted. Reach 5 correct prophecies to unlock Ray’s ending.</p>
+        <p class="hint">Flow: Begin → Move to dodge → Channel (Space) and Slash (F) to defeat Trollocs → Survive waves → Romantic ending.</p>
       </div>
       <div class="stats-card">
         <div class="stat">
@@ -45,16 +51,12 @@
           <span id="livesDisplay" class="value">3</span>
         </div>
         <div class="stat">
-          <span class="label">Spins</span>
-          <span id="timeDisplay" class="value">0s</span>
+          <span class="label">Wave</span>
+          <span id="waveDisplay" class="value">1</span>
         </div>
         <div class="stat">
-          <span class="label">Bonus</span>
-          <span id="bonusDisplay" class="value">None</span>
-        </div>
-        <div class="stat">
-          <span class="label">Prophecies</span>
-          <span id="correctDisplay" class="value">0 / 5</span>
+          <span class="label">Channel</span>
+          <span id="channelDisplay" class="value">100%</span>
         </div>
         <button id="toggleAudio" class="btn tiny">SFX: On</button>
       </div>
@@ -64,15 +66,16 @@
       <section class="panel instructions">
         <h2>How to Play</h2>
         <ul>
-          <li>Spin the Wheel of the White Tower—wedges grant score boosts, hearts, fireworks, shadow hits, or a prophecy to answer.</li>
-          <li>Prophecy wedges open a quiz; correct answers count toward the five truths needed for the ending between Deedra (Aes Sedai) and Ray (Warder).</li>
-          <li>Bonuses stack; hearts keep you safe from “Shadow” wedges that drain a life. Score for flair, hearts for safety.</li>
+          <li>Move with Arrow Keys or A/D; dodge Trolloc charges.</li>
+          <li>Channel with Space (ranged blast, costs channel energy). Slash with F (Ray’s strike, short range).</li>
+          <li>Survive waves of Trollocs; defeat them all. Hearts are shared between Deedra and Ray.</li>
+          <li>Channel energy refills slowly. Keep your positioning cel-sharp to avoid hits.</li>
+          <li>Reach the final wave to unlock their romantic ending beneath the snow.</li>
           <li>Use the light/dark toggle to pick your vibe; SFX toggle for subtle chimes.</li>
-          <li>Turn-based flow: Spin → Resolve the omen → (If prophecy) Answer → Repeat.</li>
         </ul>
         <div class="lore">
-          <p><strong>Wheel of Time vibe:</strong> Ajah colors, heron-mark blade tokens, White Tower snow, Trolloc masks for danger.</p>
-          <p><strong>Holiday vibe:</strong> Northern lights gradient, warm gold ribbons, snowfall, and heart sparks for Deedra.</p>
+          <p><strong>Wheel of Time vibe:</strong> Aes Sedai channeling flare, Warder blade arcs, Trolloc horned silhouettes.</p>
+          <p><strong>Holiday vibe:</strong> Red/green/gold/white cel-shaded palette, snowfall, and heart sparks.</p>
         </div>
       </section>
 
@@ -80,15 +83,14 @@
         <canvas id="playfield" width="900" height="520"></canvas>
         <div class="overlay" id="overlay">
           <div id="message"></div>
-          <button id="quizButton" class="btn secondary">Answer Prophecy Quiz</button>
         </div>
         <div class="cutscene" id="cutscene">
           <div class="cutscene-card">
           <p class="cutscene-eyebrow">Ray's Gift</p>
-          <h3>End of This Turning</h3>
-            <p class="cutscene-body">Snow settles over the White Tower. Deedra’s calm light meets Ray’s steadfast guard; Warder and Aes Sedai share a vow beneath the gilded sky.</p>
-            <p class="cutscene-body">“In every turning,” Ray whispers, “I am your shield and your joy.” The Wheel spins on with warmth and love.</p>
-            <p class="cutscene-body">Spin again if you want the magic to keep weaving.</p>
+          <h3>After the Last Trolloc</h3>
+            <p class="cutscene-body">Snow settles over the White Tower grounds. Deedra’s calm light wraps Ray, and his guard becomes an embrace.</p>
+            <p class="cutscene-body">“In every turning,” Ray whispers, “I am your shield and your joy.” Deedra answers, “And you are the warmth in my winter.”</p>
+            <p class="cutscene-body">Fight again if you want the magic to keep weaving.</p>
             <div class="cutscene-actions">
               <button id="restartButton" class="btn primary">Play Again</button>
             </div>
@@ -97,14 +99,10 @@
       </section>
 
       <section class="panel side">
-        <h2>Wheel of Gifts</h2>
-        <canvas id="wheelCanvas" width="260" height="260"></canvas>
-        <p id="wheelResult" class="wheel-result">Spin to receive a bonus gift.</p>
-        <h2>Quick Quiz</h2>
-        <div id="quizZone" class="quiz">
-          <p class="quiz-question">Answer after a run to channel more light.</p>
-          <div id="quizOptions" class="quiz-options"></div>
-        </div>
+        <h2>Controls</h2>
+        <p class="wheel-result">Move: Arrow Keys / A & D<br>Channel Blast: Space<br>Warder Slash: F<br>Toggle SFX: SFX button<br>Toggle Theme: Top-right</p>
+        <h2>Tips</h2>
+        <p class="wheel-result">Channel from range to thin waves; slash when they close in. Keep an eye on channel energy and hearts. Cel-shaded silhouettes make enemies pop—watch their horns!</p>
       </section>
     </main>
   </div>
