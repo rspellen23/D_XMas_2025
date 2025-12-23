@@ -17,6 +17,12 @@
   const waveEl = document.getElementById('waveDisplay');
   const channelEl = document.getElementById('channelDisplay');
 
+  const textures = {
+    aesSedai: null,
+    warder: null,
+    trolloc: null
+  };
+
   const state = {
     started: false,
     finished: false,
@@ -96,6 +102,23 @@
     messageEl.textContent = 'Begin when ready.';
     overlayEl.style.pointerEvents = 'none';
     updateStats();
+  }
+
+  function loadTexture(key, path) {
+    const img = new Image();
+    img.src = path;
+    img.onload = () => {
+      textures[key] = img;
+    };
+    img.onerror = () => {
+      textures[key] = null;
+    };
+  }
+
+  function loadAllTextures() {
+    loadTexture('aesSedai', 'assets/deedra.png');
+    loadTexture('warder', 'assets/ray.png');
+    loadTexture('trolloc', 'assets/trolloc.png');
   }
 
   function startGame() {
@@ -363,30 +386,105 @@
   }
 
   function drawAesSedai(p) {
-    drawCelRect(p.x, p.y, p.size, p.size * 1.2, '#f8f8f8', '#0a0a0d', 10);
-    ctx.fillStyle = '#0e7c4b';
-    ctx.fillRect(p.x - p.size * 0.2, p.y - p.size * 0.6, p.size * 0.4, p.size * 0.4);
-    ctx.strokeStyle = '#b4002f';
+    if (textures.aesSedai) {
+      const img = textures.aesSedai;
+      const scale = (p.size * 2.4) / img.height;
+      const w = img.width * scale;
+      const h = img.height * scale;
+      ctx.drawImage(img, p.x - w / 2, p.y - h, w, h);
+      return;
+    }
+    // robe
+    drawCelRect(p.x, p.y, p.size, p.size * 1.2, '#0e7c4b', '#0a0a0d', 12);
+    // sash
+    ctx.fillStyle = '#f0c35b';
+    ctx.fillRect(p.x - p.size * 0.25, p.y - p.size * 0.2, p.size * 0.5, p.size * 0.2);
+    // head
+    const headY = p.y - p.size * 0.75;
+    ctx.fillStyle = '#3d2b23'; // skin tone
+    ctx.strokeStyle = '#0a0a0d';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(p.x, p.y - p.size * 0.7);
+    ctx.arc(p.x, headY, p.size * 0.35, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // hair
+    ctx.fillStyle = '#1a1111';
+    ctx.beginPath();
+    ctx.arc(p.x, headY - p.size * 0.05, p.size * 0.37, Math.PI, Math.PI * 2);
+    ctx.fill();
+    // glasses
+    ctx.strokeStyle = '#f8f8f8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.rect(p.x - p.size * 0.18, headY - p.size * 0.1, p.size * 0.16, p.size * 0.12);
+    ctx.rect(p.x + p.size * 0.02, headY - p.size * 0.1, p.size * 0.16, p.size * 0.12);
+    ctx.moveTo(p.x - p.size * 0.02, headY - p.size * 0.04);
+    ctx.lineTo(p.x + p.size * 0.02, headY - p.size * 0.04);
+    ctx.stroke();
+    // channel focus
+    ctx.strokeStyle = '#f0c35b';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y - p.size * 0.6);
     ctx.lineTo(p.x, p.y - p.size * 0.3);
     ctx.stroke();
   }
 
   function drawWarder(p) {
-    drawCelRect(p.x, p.y, p.size, p.size * 1.1, '#0e7c4b', '#0a0a0d', 10);
+    if (textures.warder) {
+      const img = textures.warder;
+      const scale = (p.size * 2.2) / img.height;
+      const w = img.width * scale;
+      const h = img.height * scale;
+      ctx.drawImage(img, p.x - w / 2, p.y - h, w, h);
+      return;
+    }
+    // armor/coat
+    drawCelRect(p.x, p.y, p.size, p.size * 1.1, '#0e7c4b', '#0a0a0d', 12);
+    // chest plate
     ctx.fillStyle = '#f0c35b';
-    ctx.fillRect(p.x - p.size * 0.25, p.y - p.size * 0.4, p.size * 0.5, p.size * 0.3);
+    ctx.fillRect(p.x - p.size * 0.25, p.y - p.size * 0.35, p.size * 0.5, p.size * 0.3);
+    // head
+    const headY = p.y - p.size * 0.65;
+    ctx.fillStyle = '#3d2b23';
+    ctx.strokeStyle = '#0a0a0d';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(p.x, headY, p.size * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    // hair cropped
+    ctx.fillStyle = '#0f0a0a';
+    ctx.beginPath();
+    ctx.arc(p.x, headY - p.size * 0.05, p.size * 0.34, Math.PI, Math.PI * 2);
+    ctx.fill();
+    // glasses
+    ctx.strokeStyle = '#f8f8f8';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.rect(p.x - p.size * 0.16, headY - p.size * 0.1, p.size * 0.14, p.size * 0.1);
+    ctx.rect(p.x + p.size * 0.02, headY - p.size * 0.1, p.size * 0.14, p.size * 0.1);
+    ctx.moveTo(p.x - p.size * 0.02, headY - p.size * 0.05);
+    ctx.lineTo(p.x + p.size * 0.02, headY - p.size * 0.05);
+    ctx.stroke();
     // blade arc
     ctx.strokeStyle = '#f8f8f8';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 5;
     ctx.beginPath();
-    ctx.arc(p.x + p.size * 0.4, p.y - p.size * 0.2, p.size * 0.7, -0.4, 1.2);
+    ctx.arc(p.x + p.size * 0.45, p.y - p.size * 0.15, p.size * 0.7, -0.4, 1.2);
     ctx.stroke();
   }
 
   function drawTrolloc(t) {
+    if (textures.trolloc) {
+      const img = textures.trolloc;
+      const scale = (t.size * 2.2) / img.height;
+      const w = img.width * scale;
+      const h = img.height * scale;
+      ctx.drawImage(img, t.x - w / 2, t.y - h / 2, w, h);
+      return;
+    }
     ctx.fillStyle = '#1a1a21';
     ctx.strokeStyle = '#000';
     ctx.lineWidth = 4;
@@ -396,12 +494,12 @@
     ctx.stroke();
     // horns
     ctx.strokeStyle = '#b4002f';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 5;
     ctx.beginPath();
     ctx.moveTo(t.x - t.size * 0.25, t.y - t.size * 0.5);
-    ctx.lineTo(t.x - t.size * 0.45, t.y - t.size * 0.9);
+    ctx.quadraticCurveTo(t.x - t.size * 0.4, t.y - t.size, t.x - t.size * 0.55, t.y - t.size * 0.7);
     ctx.moveTo(t.x + t.size * 0.25, t.y - t.size * 0.5);
-    ctx.lineTo(t.x + t.size * 0.45, t.y - t.size * 0.9);
+    ctx.quadraticCurveTo(t.x + t.size * 0.4, t.y - t.size, t.x + t.size * 0.55, t.y - t.size * 0.7);
     ctx.stroke();
     // eyes
     ctx.fillStyle = '#f0c35b';
@@ -409,6 +507,9 @@
     ctx.arc(t.x - t.size * 0.15, t.y - t.size * 0.2, 4, 0, Math.PI * 2);
     ctx.arc(t.x + t.size * 0.15, t.y - t.size * 0.2, 4, 0, Math.PI * 2);
     ctx.fill();
+    // snout highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    ctx.fillRect(t.x - t.size * 0.15, t.y - t.size * 0.05, t.size * 0.3, t.size * 0.2);
   }
 
   function drawProjectiles() {
@@ -500,6 +601,7 @@
 
   function init() {
     initEvents();
+    loadAllTextures();
     messageEl.textContent = 'Begin when ready.';
     overlayEl.style.pointerEvents = 'none';
     cutsceneEl.style.display = 'none';
