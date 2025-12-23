@@ -6,6 +6,7 @@
   const startBtn = document.getElementById('startRun');
   const spinBtn = document.getElementById('spinWheel');
   const quizBtn = document.getElementById('quizButton');
+  const startGameBtn = document.getElementById('startGame');
   const scoreEl = document.getElementById('scoreDisplay');
   const livesEl = document.getElementById('livesDisplay');
   const timeEl = document.getElementById('timeDisplay');
@@ -20,11 +21,14 @@
   const themeToggleBtn = document.getElementById('themeToggle');
   const cutsceneEl = document.getElementById('cutscene');
   const restartBtn = document.getElementById('restartButton');
+  const startMenuEl = document.getElementById('startMenu');
 
   const state = {
     score: 0,
     lives: 3,
     timeLeft: 0,
+    spins: 0,
+    started: false,
     runActive: false,
     finished: false,
     runsCompleted: 0,
@@ -48,12 +52,12 @@
   };
 
   const wheelSegments = [
-    { label: 'Double Points', effect: 'double', color: '#f6c667' },
-    { label: 'Slow Shadows', effect: 'slow', color: '#1e715a' },
-    { label: 'Shield Heart', effect: 'shield', color: '#b0213c' },
-    { label: 'Extra Time', effect: 'time', color: '#5ac8fa' },
-    { label: 'Romantic Fireworks', effect: 'fireworks', color: '#ff4f7d' },
-    { label: 'Gift Cascade', effect: 'cascade', color: '#7c5bff' }
+    { label: 'Prophecy', effect: 'quiz', color: '#f0c35b' },
+    { label: 'Score Surge', effect: 'double', color: '#0e7c4b' },
+    { label: 'Heart Bloom', effect: 'life', color: '#f8f8f8' },
+    { label: 'Shadow Bite', effect: 'hazard', color: '#b4002f' },
+    { label: 'Romantic Fireworks', effect: 'fireworks', color: '#ff6b8f' },
+    { label: 'Gift Cascade', effect: 'cascade', color: '#e8d5a9' }
   ];
 
   const quizBank = [
@@ -120,7 +124,7 @@
   function updateStats() {
     scoreEl.textContent = Math.round(state.score);
     livesEl.textContent = state.lives;
-    timeEl.textContent = `${Math.max(0, Math.ceil(state.timeLeft))}s`;
+    timeEl.textContent = `${state.spins} spins`;
     bonusEl.textContent = state.bonus ? state.bonus.label : 'None';
     correctEl.textContent = `${state.correctAnswers} / ${state.goalAnswers}`;
   }
@@ -128,64 +132,62 @@
   function startRun() {
     if (state.finished) return;
     cutsceneEl.style.display = 'none';
-    state.runActive = true;
-    state.timeLeft = 32 + state.pendingTimeBoost;
-    state.pendingTimeBoost = 0;
-    state.gifts = [];
-    state.hazards = [];
-    state.particles = [];
-    state.giftTimer = 0.4;
-    state.hazardTimer = 1.1;
+    if (!state.started) {
+      state.started = true;
+      startMenuEl.style.display = 'none';
+      spinBtn.disabled = false;
+    }
+    state.runActive = false;
     state.quizReady = false;
     overlayEl.style.pointerEvents = 'none';
     quizBtn.style.display = 'none';
-    messageEl.textContent = 'Collect Ajah lights, dodge Trolloc snow. For Deedra!';
+    messageEl.textContent = 'Spin the Wheel to weave omens. Five truths reveal the vow.';
     updateStats();
-  }
-
-  function endRun(reason) {
-    state.runActive = false;
-    state.quizReady = true;
-    state.runsCompleted += 1;
-    overlayEl.style.pointerEvents = 'auto';
-    quizBtn.style.display = 'inline-flex';
-    messageEl.textContent = reason;
   }
 
   function applyBonus(segment) {
     state.bonus = { type: segment.effect, label: segment.label };
     wheelResultEl.textContent = `Gift received: ${segment.label}`;
-    state.bonusTime = 22;
+    state.bonusTime = segment.effect === 'double' ? 22 : 0;
 
     switch (segment.effect) {
       case 'double':
         break;
-      case 'slow':
-        break;
-      case 'shield':
-        state.player.shield = Math.max(state.player.shield, 18);
-        break;
-      case 'time':
-        if (state.runActive) {
-          state.timeLeft += 6;
-        } else {
-          state.pendingTimeBoost += 6;
-        }
+      case 'life':
+        state.lives += 1;
         break;
       case 'fireworks':
         spawnFireworks(canvas.width / 2, canvas.height / 3);
         break;
       case 'cascade':
+        state.score += 40;
         break;
+      case 'hazard':
+        state.lives = Math.max(0, state.lives - 1);
+        messageEl.textContent = 'Shadow Bite! Ray steps between you and the dark; a heart dims.';
+        break;
+      case 'quiz':
+        state.quizReady = true;
+        overlayEl.style.pointerEvents = 'auto';
+        quizBtn.style.display = 'inline-flex';
+        messageEl.textContent = 'Prophecy appears—answer to weave the light.';
+        presentQuiz();
+        return;
       default:
         break;
+    }
+    if (!state.quizReady) {
+      overlayEl.style.pointerEvents = 'none';
+      quizBtn.style.display = 'none';
     }
     updateStats();
   }
 
   function spinWheel() {
     if (state.finished) return;
+    if (!state.started) return;
     if (state.wheelSpin.spinning) return;
+    state.spins += 1;
     const idx = Math.floor(Math.random() * wheelSegments.length);
     const turns = 4 + Math.floor(Math.random() * 3);
     const segmentAngle = (Math.PI * 2) / wheelSegments.length;
@@ -231,7 +233,8 @@
       wctx.closePath();
       wctx.fillStyle = wheelSegments[i].color;
       wctx.fill();
-      wctx.strokeStyle = 'rgba(0,0,0,0.2)';
+      wctx.lineWidth = 3;
+      wctx.strokeStyle = 'rgba(0,0,0,0.35)';
       wctx.stroke();
 
       // labels
@@ -258,6 +261,13 @@
     wctx.font = '700 13px Space Grotesk, sans-serif';
     wctx.textAlign = 'center';
     wctx.fillText('SPIN', cx, cy + 4);
+
+    // outer outline for cel-shade vibe
+    wctx.lineWidth = 5;
+    wctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    wctx.beginPath();
+    wctx.arc(cx, cy, radius + 4, 0, Math.PI * 2);
+    wctx.stroke();
 
     // pointer
     wctx.beginPath();
@@ -302,84 +312,10 @@
   }
 
   function update(dt) {
-    if (state.runActive) {
-      state.timeLeft -= dt;
-      if (state.bonusTime > 0) {
-        state.bonusTime -= dt;
-        if (state.bonusTime <= 0) {
-          state.bonus = null;
-        }
-      }
-
-      if (state.bonus?.type === 'cascade') {
-        state.giftTimer -= dt * 1.5;
-      } else {
-        state.giftTimer -= dt;
-      }
-      state.hazardTimer -= dt;
-
-      if (state.giftTimer <= 0) {
-        spawnGift();
-        state.giftTimer = rand(0.35, 0.7);
-      }
-      if (state.hazardTimer <= 0) {
-        spawnHazard();
-        state.hazardTimer = rand(0.8, 1.3);
-      }
-
-      const slowFactor = state.bonus?.type === 'slow' ? 0.65 : 1;
-      const multiplier = state.bonus?.type === 'double' ? 2 : 1;
-
-      const vel = (state.input.left ? -1 : 0) + (state.input.right ? 1 : 0);
-      state.player.x = clamp(state.player.x + vel * state.player.speed * dt, 30, canvas.width - 30);
-      if (state.player.shield > 0) {
-        state.player.shield = Math.max(0, state.player.shield - dt);
-      }
-
-      for (const g of state.gifts) {
-        g.y += g.speed * dt;
-      }
-      for (const h of state.hazards) {
-        h.y += h.speed * slowFactor * dt;
-        h.x += Math.sin(h.y * 0.02) * 20 * dt * h.wobble;
-      }
-
-      state.gifts = state.gifts.filter((g) => g.y < canvas.height + 40);
-      state.hazards = state.hazards.filter((h) => h.y < canvas.height + 40);
-
-      // collisions
-      for (let i = state.gifts.length - 1; i >= 0; i--) {
-        const g = state.gifts[i];
-        const dx = Math.abs(g.x - state.player.x);
-        const dy = Math.abs(g.y - state.player.y);
-        if (dx < g.r + state.player.w && dy < g.r + state.player.h / 2) {
-          state.score += g.value * multiplier;
-          spawnFireworks(g.x, g.y);
-          playTone(520, 0.1);
-          state.gifts.splice(i, 1);
-        }
-      }
-
-      for (let i = state.hazards.length - 1; i >= 0; i--) {
-        const h = state.hazards[i];
-        const dx = Math.abs(h.x - state.player.x);
-        const dy = Math.abs(h.y - state.player.y);
-        if (dx < h.r + state.player.w * 0.5 && dy < h.r + state.player.h / 2) {
-          if (state.player.shield > 0) {
-            state.player.shield = 0;
-            spawnFireworks(h.x, h.y);
-          } else {
-            state.lives -= 1;
-            playTone(220, 0.12);
-          }
-          state.hazards.splice(i, 1);
-        }
-      }
-
-      if (state.timeLeft <= 0) {
-        endRun('Run complete! Channel your answers in the quiz to keep the holiday spirit high.');
-      } else if (state.lives <= 0) {
-        endRun('Hearts are out! Answer a prophecy to rekindle the holiday glow.');
+    if (state.bonusTime > 0) {
+      state.bonusTime -= dt;
+      if (state.bonusTime <= 0) {
+        state.bonus = null;
       }
     }
 
@@ -396,7 +332,7 @@
     updateStats();
   }
 
-  function drawBackground() {
+  function drawBackground(ts) {
     ctx.fillStyle = '#050815';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -425,8 +361,8 @@
 
     // snowfall dots
     for (let i = 0; i < 90; i++) {
-      const x = (i * 73 + Date.now() * 0.02) % canvas.width;
-      const y = (i * 41 + Date.now() * 0.04) % canvas.height;
+      const x = (i * 73 + ts * 0.02) % canvas.width;
+      const y = (i * 41 + ts * 0.04) % canvas.height;
       ctx.fillStyle = 'rgba(255,255,255,0.2)';
       ctx.fillRect(x, y, 2, 2);
     }
@@ -496,12 +432,54 @@
     }
   }
 
+  function drawWheelAura(ts) {
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
+    const baseRadius = Math.min(canvas.width, canvas.height) * 0.32;
+    const pulse = Math.sin(ts * 0.003) * 6;
+
+    const ringGrad = ctx.createRadialGradient(cx, cy, baseRadius * 0.4, cx, cy, baseRadius + 30);
+    ringGrad.addColorStop(0, 'rgba(255, 255, 255, 0.05)');
+    ringGrad.addColorStop(1, 'rgba(0,0,0,0.55)');
+    ctx.fillStyle = ringGrad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, baseRadius + 36, 0, Math.PI * 2);
+    ctx.fill();
+
+    // main ring
+    ctx.lineWidth = 16;
+    ctx.strokeStyle = 'rgba(255, 217, 112, 0.35)';
+    ctx.beginPath();
+    ctx.arc(cx, cy, baseRadius + pulse, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // inner ring with motion
+    const innerRadius = baseRadius * 0.7;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((ts / 1200) % (Math.PI * 2));
+    for (let i = 0; i < wheelSegments.length; i++) {
+      ctx.beginPath();
+      ctx.strokeStyle = `${wheelSegments[i].color}44`;
+      ctx.lineWidth = 10;
+      ctx.arc(0, 0, innerRadius, i * ((Math.PI * 2) / wheelSegments.length), (i + 0.6) * ((Math.PI * 2) / wheelSegments.length));
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // pointer glow
+    ctx.fillStyle = 'rgba(255, 95, 143, 0.28)';
+    ctx.beginPath();
+    ctx.arc(cx, cy - innerRadius - 24, 16, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
   function drawUI() {
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     ctx.font = '700 16px Space Grotesk, sans-serif';
     ctx.fillText(`Deedra's Score: ${Math.round(state.score)}`, 20, 28);
     ctx.fillText(`Hearts: ${state.lives}`, 20, 52);
-    ctx.fillText(`Time: ${Math.ceil(state.timeLeft)}s`, 20, 76);
+    ctx.fillText(`Spins: ${state.spins}`, 20, 76);
     if (state.bonus) {
       ctx.fillText(`Bonus: ${state.bonus.label}`, 20, 100);
     }
@@ -535,7 +513,7 @@
       messageEl.textContent = `Correct! ${state.activeQuestion.answer} — the Pattern glows warmer.`;
       spawnFireworks(canvas.width / 2, canvas.height / 4);
     } else {
-      messageEl.textContent = 'Not quite. The Pattern weaves on—try another run!';
+      messageEl.textContent = 'Not quite. The Pattern weaves on—try another spin!';
     }
     quizOptions.innerHTML = '';
     state.activeQuestion = null;
@@ -563,10 +541,12 @@
     state.score = 0;
     state.lives = 3;
     state.timeLeft = 0;
+    state.spins = 0;
     state.runActive = false;
     state.finished = false;
     state.runsCompleted = 0;
     state.correctAnswers = 0;
+    state.started = false;
     state.bonus = null;
     state.bonusTime = 0;
     state.pendingTimeBoost = 0;
@@ -577,10 +557,11 @@
     startBtn.disabled = false;
     spinBtn.disabled = false;
     cutsceneEl.style.display = 'none';
+    startMenuEl.style.display = 'flex';
     overlayEl.style.pointerEvents = 'none';
     quizBtn.style.display = 'none';
     wheelResultEl.textContent = 'Spin to receive a bonus gift.';
-    messageEl.textContent = 'Spin, run, and quiz to earn gifts for Deedra. Tap Start Run to begin.';
+    messageEl.textContent = 'Spin the Wheel to pull omens and gifts. Answer prophecies to reach the ending.';
     updateStats();
   }
 
@@ -589,10 +570,8 @@
     const dt = Math.min(0.05, (now - (gameLoop.last || now)) / 1000);
     gameLoop.last = now;
     update(dt);
-    drawBackground();
-    drawGifts();
-    drawHazards();
-    drawPlayer();
+    drawBackground(now);
+    drawWheelAura(now);
     drawParticles();
     drawUI();
     drawWheel(now);
@@ -601,6 +580,7 @@
 
   function initEvents() {
     startBtn.addEventListener('click', startRun);
+    startGameBtn.addEventListener('click', startRun);
     spinBtn.addEventListener('click', spinWheel);
     quizBtn.addEventListener('click', () => {
       presentQuiz();
@@ -629,8 +609,9 @@
 
   function init() {
     initEvents();
-    messageEl.textContent = 'Spin, run, and quiz to earn gifts for Deedra. Tap Start Run to begin.';
+    messageEl.textContent = 'Spin the Wheel to pull omens and gifts. Answer prophecies to reach the ending.';
     quizBtn.style.display = 'none';
+    spinBtn.disabled = true;
     requestAnimationFrame(gameLoop);
   }
 

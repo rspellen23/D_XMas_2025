@@ -10,19 +10,30 @@
   <link rel="stylesheet" href="style.css">
 </head>
   <body>
+  <div class="start-menu" id="startMenu">
+    <div class="start-card">
+      <p class="eyebrow">Aes Sedai & Warder</p>
+      <h2>Deedra & Ray</h2>
+      <p class="lede">Spin the Wheel to weave omens, gather hearts, and answer prophecies. Reach five truths to unlock their shared vow beneath the falling snow.</p>
+      <div class="start-actions">
+        <button id="startGame" class="btn primary">Begin the Journey</button>
+      </div>
+    </div>
+  </div>
+
   <div class="page">
     <button id="themeToggle" class="btn theme-toggle">Switch to Light</button>
     <header class="hero">
       <div class="title-block">
         <p class="eyebrow">For Deedra • Holiday Gift</p>
-        <h1>Wheel of Christmas Time</h1>
-        <p class="lede">Spin gifts, answer prophecies, and sprint a snowy gauntlet with a dash of romance and the spirit of the White Tower.</p>
-        <p class="romance">Deedra, you are the guiding light on this snowy path—every gift is a wish for you.</p>
+        <h1>Wheel of Christmas Bonds</h1>
+        <p class="lede">Spin omens, earn gifts, and answer prophecies in a snowy Wheel of Time moment for Deedra and her Warder, Ray.</p>
+        <p class="romance">Deedra, you are the calm light; Ray is the steady shield. Every turn of the Wheel is a wish for you.</p>
         <div class="hero-actions">
-          <button id="startRun" class="btn primary">Start Run</button>
-          <button id="spinWheel" class="btn ghost">Spin the Wheel of Gifts</button>
+          <button id="startRun" class="btn primary">Start Journey</button>
+          <button id="spinWheel" class="btn ghost" disabled>Spin the Wheel</button>
         </div>
-        <p class="hint">Flow: Spin for a bonus → Sprint to collect gifts & dodge snow → Answer a quick Wheel of Time prophecy quiz. Repeat turns to push your score.</p>
+        <p class="hint">Flow: Start → Spin the Wheel → Resolve the omen → Answer a prophecy when prompted. Reach 5 correct prophecies to unlock Ray’s ending.</p>
       </div>
       <div class="stats-card">
         <div class="stat">
@@ -34,7 +45,7 @@
           <span id="livesDisplay" class="value">3</span>
         </div>
         <div class="stat">
-          <span class="label">Time</span>
+          <span class="label">Spins</span>
           <span id="timeDisplay" class="value">0s</span>
         </div>
         <div class="stat">
@@ -53,11 +64,11 @@
       <section class="panel instructions">
         <h2>How to Play</h2>
         <ul>
-          <li>Spin the Wheel of Gifts to earn a round bonus: double points, slow shadows, shield, time boost, or romantic fireworks.</li>
-          <li>Start a Run: move with arrow keys or A/D to collect glowing gifts (Ajah-colored orbs) and avoid shadowspawn snowballs.</li>
-          <li>Runs are quick (about 30 seconds). Keep hearts above zero and stack score for Deedra’s perfect holiday.</li>
-          <li>Answer a Wheel of Time prophecy quiz after each run—correct answers add hearts or points.</li>
-          <li>Turn-based flow: Spin → Sprint → Quiz → Repeat. Get 5 answers right to unlock Ray’s ending cutscene.</li>
+          <li>Spin the Wheel of the White Tower—wedges grant score boosts, hearts, fireworks, shadow hits, or a prophecy to answer.</li>
+          <li>Prophecy wedges open a quiz; correct answers count toward the five truths needed for the ending between Deedra (Aes Sedai) and Ray (Warder).</li>
+          <li>Bonuses stack; hearts keep you safe from “Shadow” wedges that drain a life. Score for flair, hearts for safety.</li>
+          <li>Use the light/dark toggle to pick your vibe; SFX toggle for subtle chimes.</li>
+          <li>Turn-based flow: Spin → Resolve the omen → (If prophecy) Answer → Repeat.</li>
         </ul>
         <div class="lore">
           <p><strong>Wheel of Time vibe:</strong> Ajah colors, heron-mark blade tokens, White Tower snow, Trolloc masks for danger.</p>
@@ -73,9 +84,10 @@
         </div>
         <div class="cutscene" id="cutscene">
           <div class="cutscene-card">
-            <p class="cutscene-eyebrow">Ray's Gift</p>
-            <h3>End of This Turning</h3>
-            <p class="cutscene-body">Snow settles over the White Tower. A golden ribbon ties this run closed—Ray wishes you warmth, courage, and all the love the Wheel can spin, Deedra.</p>
+          <p class="cutscene-eyebrow">Ray's Gift</p>
+          <h3>End of This Turning</h3>
+            <p class="cutscene-body">Snow settles over the White Tower. Deedra’s calm light meets Ray’s steadfast guard; Warder and Aes Sedai share a vow beneath the gilded sky.</p>
+            <p class="cutscene-body">“In every turning,” Ray whispers, “I am your shield and your joy.” The Wheel spins on with warmth and love.</p>
             <p class="cutscene-body">Spin again if you want the magic to keep weaving.</p>
             <div class="cutscene-actions">
               <button id="restartButton" class="btn primary">Play Again</button>
