@@ -9,8 +9,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+  <body>
   <div class="page">
+    <button id="themeToggle" class="btn theme-toggle">Switch to Light</button>
     <header class="hero">
       <div class="title-block">
         <p class="eyebrow">For Deedra • Holiday Gift</p>
@@ -40,6 +41,10 @@
           <span class="label">Bonus</span>
           <span id="bonusDisplay" class="value">None</span>
         </div>
+        <div class="stat">
+          <span class="label">Prophecies</span>
+          <span id="correctDisplay" class="value">0 / 5</span>
+        </div>
         <button id="toggleAudio" class="btn tiny">SFX: On</button>
       </div>
     </header>
@@ -52,7 +57,7 @@
           <li>Start a Run: move with arrow keys or A/D to collect glowing gifts (Ajah-colored orbs) and avoid shadowspawn snowballs.</li>
           <li>Runs are quick (about 30 seconds). Keep hearts above zero and stack score for Deedra’s perfect holiday.</li>
           <li>Answer a Wheel of Time prophecy quiz after each run—correct answers add hearts or points.</li>
-          <li>Turn-based flow: Spin → Sprint → Quiz → Repeat. Beat your own prophecy.</li>
+          <li>Turn-based flow: Spin → Sprint → Quiz → Repeat. Get 5 answers right to unlock Ray’s ending cutscene.</li>
         </ul>
         <div class="lore">
           <p><strong>Wheel of Time vibe:</strong> Ajah colors, heron-mark blade tokens, White Tower snow, Trolloc masks for danger.</p>
@@ -65,6 +70,17 @@
         <div class="overlay" id="overlay">
           <div id="message"></div>
           <button id="quizButton" class="btn secondary">Answer Prophecy Quiz</button>
+        </div>
+        <div class="cutscene" id="cutscene">
+          <div class="cutscene-card">
+            <p class="cutscene-eyebrow">Ray's Gift</p>
+            <h3>End of This Turning</h3>
+            <p class="cutscene-body">Snow settles over the White Tower. A golden ribbon ties this run closed—Ray wishes you warmth, courage, and all the love the Wheel can spin, Deedra.</p>
+            <p class="cutscene-body">Spin again if you want the magic to keep weaving.</p>
+            <div class="cutscene-actions">
+              <button id="restartButton" class="btn primary">Play Again</button>
+            </div>
+          </div>
         </div>
       </section>
 

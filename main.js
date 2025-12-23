@@ -10,12 +10,16 @@
   const livesEl = document.getElementById('livesDisplay');
   const timeEl = document.getElementById('timeDisplay');
   const bonusEl = document.getElementById('bonusDisplay');
+  const correctEl = document.getElementById('correctDisplay');
   const messageEl = document.getElementById('message');
   const overlayEl = document.getElementById('overlay');
   const wheelResultEl = document.getElementById('wheelResult');
   const quizZone = document.getElementById('quizZone');
   const quizOptions = document.getElementById('quizOptions');
   const toggleAudioBtn = document.getElementById('toggleAudio');
+  const themeToggleBtn = document.getElementById('themeToggle');
+  const cutsceneEl = document.getElementById('cutscene');
+  const restartBtn = document.getElementById('restartButton');
 
   const state = {
     score: 0,
@@ -24,6 +28,8 @@
     runActive: false,
     finished: false,
     runsCompleted: 0,
+    correctAnswers: 0,
+    goalAnswers: 5,
     bonus: null,
     bonusTime: 0,
     pendingTimeBoost: 0,
@@ -116,10 +122,12 @@
     livesEl.textContent = state.lives;
     timeEl.textContent = `${Math.max(0, Math.ceil(state.timeLeft))}s`;
     bonusEl.textContent = state.bonus ? state.bonus.label : 'None';
+    correctEl.textContent = `${state.correctAnswers} / ${state.goalAnswers}`;
   }
 
   function startRun() {
     if (state.finished) return;
+    cutsceneEl.style.display = 'none';
     state.runActive = true;
     state.timeLeft = 32 + state.pendingTimeBoost;
     state.pendingTimeBoost = 0;
@@ -523,6 +531,7 @@
       } else if (state.activeQuestion.reward.type === 'life') {
         state.lives += state.activeQuestion.reward.value;
       }
+      state.correctAnswers += 1;
       messageEl.textContent = `Correct! ${state.activeQuestion.answer} — the Pattern glows warmer.`;
       spawnFireworks(canvas.width / 2, canvas.height / 4);
     } else {
@@ -538,7 +547,7 @@
   }
 
   function checkEnding() {
-    const milestoneReached = state.runsCompleted >= 3 || state.score >= 260;
+    const milestoneReached = state.correctAnswers >= state.goalAnswers;
     if (!milestoneReached || state.finished) return;
     state.finished = true;
     state.runActive = false;
@@ -546,11 +555,33 @@
     quizBtn.style.display = 'none';
     startBtn.disabled = true;
     spinBtn.disabled = true;
-    messageEl.innerHTML = [
-      'A ribbon of light settles over the snow.',
-      'Ray\'s gift lands: a holiday wish just for you, Deedra.',
-      'May this Wheel spin joy, courage, and love through your every turning.'
-    ].join(' ');
+    cutsceneEl.style.display = 'flex';
+    messageEl.textContent = 'The turning completes. Take in the moment.';
+  }
+
+  function resetGame() {
+    state.score = 0;
+    state.lives = 3;
+    state.timeLeft = 0;
+    state.runActive = false;
+    state.finished = false;
+    state.runsCompleted = 0;
+    state.correctAnswers = 0;
+    state.bonus = null;
+    state.bonusTime = 0;
+    state.pendingTimeBoost = 0;
+    state.gifts = [];
+    state.hazards = [];
+    state.particles = [];
+    state.player.shield = 0;
+    startBtn.disabled = false;
+    spinBtn.disabled = false;
+    cutsceneEl.style.display = 'none';
+    overlayEl.style.pointerEvents = 'none';
+    quizBtn.style.display = 'none';
+    wheelResultEl.textContent = 'Spin to receive a bonus gift.';
+    messageEl.textContent = 'Spin, run, and quiz to earn gifts for Deedra. Tap Start Run to begin.';
+    updateStats();
   }
 
   function gameLoop(ts) {
@@ -578,6 +609,12 @@
       state.soundOn = !state.soundOn;
       toggleAudioBtn.textContent = `SFX: ${state.soundOn ? 'On' : 'Off'}`;
     });
+    themeToggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('theme-light');
+      const lightOn = document.body.classList.contains('theme-light');
+      themeToggleBtn.textContent = lightOn ? 'Switch to Dark' : 'Switch to Light';
+    });
+    restartBtn.addEventListener('click', resetGame);
 
     window.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') state.input.left = true;

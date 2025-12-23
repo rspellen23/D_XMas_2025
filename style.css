@@ -6,6 +6,7 @@
   --text: #e9f3ff;
   --muted: #9fb2c8;
   --accent: #ffd970;
+  --accent-2: #5ac8fa;
   --emerald: #1e715a;
   --crimson: #b0213c;
   --frost: #dce9ff;
@@ -20,6 +21,22 @@
               var(--bg);
 }
 
+.theme-light {
+  --bg: #f7fbff;
+  --panel: rgba(10, 26, 43, 0.04);
+  --panel-strong: rgba(10, 26, 43, 0.08);
+  --text: #0a1a2b;
+  --muted: #5c6f85;
+  --accent: #ffb547;
+  --accent-2: #3aa6ff;
+  --emerald: #1f9e6f;
+  --crimson: #c73b55;
+  --frost: #2b3a4c;
+  --heart: #ff3f6f;
+  --shadow: rgba(6, 10, 20, 0.08);
+  --glow: 0 12px 60px rgba(58, 166, 255, 0.18);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -28,11 +45,22 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 20% 20%, rgba(111, 198, 255, 0.08), transparent 40%),
-    radial-gradient(circle at 85% 10%, rgba(255, 217, 112, 0.16), transparent 40%),
-    radial-gradient(circle at 45% 80%, rgba(176, 33, 60, 0.16), transparent 45%),
+    radial-gradient(circle at 20% 20%, color-mix(in srgb, var(--accent-2) 40%, transparent), transparent 42%),
+    radial-gradient(circle at 85% 10%, color-mix(in srgb, var(--accent) 50%, transparent), transparent 40%),
+    radial-gradient(circle at 45% 80%, color-mix(in srgb, var(--crimson) 45%, transparent), transparent 45%),
     var(--bg);
   color: var(--text);
+}
+
+.theme-toggle {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.22);
 }
 
 .page {
@@ -60,7 +88,7 @@ body {
   gap: 20px;
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  background: linear-gradient(135deg, rgba(44, 200, 196, 0.14), rgba(176, 33, 60, 0.14), rgba(255, 217, 112, 0.18));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 28%, transparent), color-mix(in srgb, var(--crimson) 26%, transparent), color-mix(in srgb, var(--accent) 32%, transparent));
   border-radius: 24px;
   box-shadow: var(--glow);
   position: relative;
@@ -120,8 +148,8 @@ body {
   border-radius: 18px;
   padding: 14px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
   align-self: center;
   backdrop-filter: blur(8px);
 }
@@ -211,11 +239,58 @@ canvas#playfield {
 
 #message {
   text-align: center;
-  background: rgba(0, 0, 0, 0.45);
+  background: color-mix(in srgb, var(--bg) 60%, rgba(255, 255, 255, 0.4));
   padding: 12px 16px;
   border-radius: 12px;
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
   max-width: 420px;
+}
+
+.cutscene {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.14), rgba(0, 0, 0, 0.65));
+  backdrop-filter: blur(8px);
+  z-index: 2;
+}
+
+.cutscene-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: var(--text);
+  border-radius: 20px;
+  padding: 22px 24px;
+  max-width: 520px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.cutscene-eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  color: var(--accent);
+  margin: 0;
+  font-weight: 700;
+}
+
+.cutscene-card h3 {
+  margin: 8px 0 6px;
+  font-size: 26px;
+  letter-spacing: -0.4px;
+}
+
+.cutscene-body {
+  color: var(--frost);
+  margin: 6px 0;
+}
+
+.cutscene-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
 }
 
 .btn {
