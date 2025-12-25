@@ -66,10 +66,11 @@
       <section class="panel instructions">
         <h2>How to Play</h2>
         <ul>
-          <li>Click any tile to rotate it. Create an unbroken path of channels from Deedra on the left to Ray on the right.</li>
-          <li>Every rotation counts as a move. Fewer moves = higher score.</li>
-          <li>Some tiles are straight, some curved, some T-shaped. All are cel shaded in red/green/gold/white.</li>
-          <li>Complete the connection to unlock their romantic ending beneath the snow.</li>
+          <li>Click a tile next to the empty space to slide it. Rearrange tiles to form an unbroken path from Deedra (left) to Ray (right).</li>
+          <li>Fewer slides = higher score. Time also counts.</li>
+          <li>Tiles include straights, curves, tees, and crosses. The empty space is dark.</li>
+          <li>Complete the connection to unlock their ending beneath the snow.</li>
+          <li>After the path, align the three rings: use the Rotate Outer/Middle/Inner buttons until all rings are gold and spokes line up; a green glow appears when they are correct, then click “See the Vow.”</li>
           <li>Use the light/dark toggle for vibe; SFX toggle for chimes.</li>
         </ul>
         <div class="lore">
@@ -82,14 +83,20 @@
         <canvas id="playfield" width="900" height="520"></canvas>
         <div class="overlay" id="overlay">
           <div id="message"></div>
+          <div class="wheel-panel">
+            <canvas id="wheelCanvas" width="220" height="220"></canvas>
+            <div class="wheel-buttons">
+              <button id="outerButton" class="btn ghost">Rotate Outer Ring</button>
+              <button id="middleButton" class="btn ghost">Rotate Middle Ring</button>
+              <button id="innerButton" class="btn ghost">Rotate Inner Ring</button>
+            </div>
+            <button id="endingButton" class="btn primary" disabled>See the Vow</button>
+          </div>
         </div>
         <div class="cutscene" id="cutscene">
           <div class="cutscene-card">
-          <p class="cutscene-eyebrow">Ray's Gift</p>
-          <h3>After the Last Trolloc</h3>
-            <p class="cutscene-body">Snow settles over the White Tower grounds. Deedra’s calm light wraps Ray, and his guard becomes an embrace.</p>
-            <p class="cutscene-body">“In every turning,” Ray whispers, “I am your shield and your joy.” Deedra answers, “And you are the warmth in my winter.”</p>
-            <p class="cutscene-body">Fight again if you want the magic to keep weaving.</p>
+          <p class="cutscene-eyebrow">Ray's Gift To Deedra</p>
+            <p class="cutscene-body">Merry Christmas Deedra. I vow to stand with you through every trouble you may face. I am your partner Leftenant and your Warder.</p>
             <div class="cutscene-actions">
               <button id="restartButton" class="btn primary">Play Again</button>
             </div>
@@ -99,9 +106,9 @@
 
       <section class="panel side">
         <h2>Controls</h2>
-        <p class="wheel-result">Click tiles to rotate them. Solve as efficiently as you can.</p>
+        <p class="wheel-result">Click a tile next to the empty space to slide it. Solve as efficiently as you can.</p>
         <h2>Tips</h2>
-        <p class="wheel-result">Look for corners and straights to bridge Deedra’s side to Ray’s. Avoid dead-ends. Fewer rotations mean a better score.</p>
+        <p class="wheel-result">Keep the path along the middle row; use the empty tile to shuffle pieces into place. Fewer slides = higher score.</p>
       </section>
     </main>
   </div>

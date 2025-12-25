@@ -11,6 +11,12 @@
   const cutsceneEl = document.getElementById('cutscene');
   const overlayEl = document.getElementById('overlay');
   const messageEl = document.getElementById('message');
+  const endingBtn = document.getElementById('endingButton');
+  const outerBtn = document.getElementById('outerButton');
+  const middleBtn = document.getElementById('middleButton');
+  const innerBtn = document.getElementById('innerButton');
+  const wheelCanvas = document.getElementById('wheelCanvas');
+  const wctx = wheelCanvas ? wheelCanvas.getContext('2d') : null;
 
   const scoreEl = document.getElementById('scoreDisplay');
   const movesEl = document.getElementById('livesDisplay');
@@ -19,7 +25,7 @@
 
   const textures = { aesSedai: null, warder: null, trolloc: null };
 
-  const TILE_SIZE = 96;
+  const TILE_SIZE = 88;
   const board = {
     offsetX: 0,
     offsetY: 0,
@@ -35,13 +41,16 @@
     links: 0,
     time: 0,
     grid: [],
-    rows: 6,
-    cols: 6,
-    startCell: { r: 3, c: 0 },
-    goalCell: { r: 3, c: 5 },
+    rows: 5,
+    cols: 5,
+    empty: { r: 4, c: 4 },
+    startCell: { r: 2, c: 0 },
+    goalCell: { r: 2, c: 4 },
     particles: [],
+    wheel: { rings: [0, 0, 0], solved: false, anim: [null, null, null], active: false, glowUntil: 0 },
     soundOn: true
   };
+  const ringColors = ['#e65f7a', '#3fa66f', '#f5d17a'];
 
   // roundRect fallback for older browsers
   if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -62,19 +71,30 @@
 
   // bitmask edges: top=1, right=2, bottom=4, left=8
   const tileLibrary = {
-    straight: { mask: 1 | 4, color: '#e23c64' }, // vertical, rotates to horizontal
-    curve: { mask: 1 | 2, color: '#0e7c4b' },
-    tee: { mask: 1 | 2 | 8, color: '#f0c35b' },
-    cross: { mask: 1 | 2 | 4 | 8, color: '#f7f7fb' }
+    straight: { mask: 1 | 4, color: '#e65f7a' }, // vertical, rotates to horizontal
+    curve: { mask: 1 | 2, color: '#3fa66f' },
+    tee: { mask: 1 | 2 | 8, color: '#f5d17a' },
+    cross: { mask: 1 | 2 | 4 | 8, color: '#f7f7fb' },
+    empty: { mask: 0, color: '#111722' }
   };
 
   function clamp(v, min, max) {
     return Math.max(min, Math.min(max, v));
   }
 
+  let sharedAudio = null;
+  let audioUnlocked = false;
+
+  function enableAudio() {
+    if (audioUnlocked || typeof AudioContext === 'undefined') return;
+    sharedAudio = new AudioContext();
+    audioUnlocked = true;
+  }
+
   function playTone(freq = 440, duration = 0.1) {
     if (!state.soundOn || typeof AudioContext === 'undefined') return;
-    const ctxAudio = new AudioContext();
+    if (!audioUnlocked || !sharedAudio) return;
+    const ctxAudio = sharedAudio;
     const osc = ctxAudio.createOscillator();
     const gain = ctxAudio.createGain();
     osc.frequency.value = freq;
@@ -85,7 +105,13 @@
     osc.start();
     gain.gain.exponentialRampToValueAtTime(0.0001, ctxAudio.currentTime + duration);
     osc.stop(ctxAudio.currentTime + duration);
-    setTimeout(() => ctxAudio.close(), 200);
+  }
+
+  function updateStats() {
+    if (scoreEl) scoreEl.textContent = Math.round(state.score);
+    if (movesEl) movesEl.textContent = state.moves;
+    if (linksEl) linksEl.textContent = state.links;
+    if (timeEl) timeEl.textContent = `${Math.floor(state.time)}s`;
   }
 
   function rotateMask(mask, times = 1) {
@@ -105,21 +131,35 @@
   }
 
   function randomTile() {
-    const keys = ['straight', 'curve', 'tee'];
+    const keys = ['straight', 'curve', 'tee', 'cross'];
     const key = keys[Math.floor(Math.random() * keys.length)];
     const rot = Math.floor(Math.random() * 4);
     return { type: key, rot };
+  }
+
+  function segAngle() {
+    return (Math.PI * 2) / 6;
+  }
+
+  function normAngle(a) {
+    let v = a % (Math.PI * 2);
+    if (v < 0) v += Math.PI * 2;
+    return v;
   }
 
   function buildGrid() {
     // set canvas to fit grid
     board.width = state.cols * TILE_SIZE;
     board.height = state.rows * TILE_SIZE;
-    canvas.width = board.width + 200;
-    canvas.height = board.height + 200;
+    const bottomPadding = TILE_SIZE * 2.4; // room for portraits below
+    canvas.width = board.width + 40;
+    canvas.height = board.height + 40 + bottomPadding;
+    canvas.style.width = `${canvas.width}px`;
+    canvas.style.height = `${canvas.height}px`;
     board.offsetX = (canvas.width - board.width) / 2;
-    board.offsetY = (canvas.height - board.height) / 2;
+    board.offsetY = (canvas.height - bottomPadding - board.height) / 2;
 
+    // solved layout
     state.grid = [];
     for (let r = 0; r < state.rows; r++) {
       const row = [];
@@ -128,23 +168,16 @@
       }
       state.grid.push(row);
     }
-    // lay guaranteed path on middle row from start to goal (horizontal straights)
+    // carve a guaranteed path on middle row
     for (let c = 0; c < state.cols; c++) {
-      const tile = state.grid[state.startCell.r][c];
-      tile.type = 'straight';
-      tile.rot = 1; // horizontal
+      state.grid[state.startCell.r][c] = { type: 'straight', rot: 1 };
     }
-    // start tile as tee open right
-    state.grid[state.startCell.r][state.startCell.c] = { type: 'tee', rot: 1 }; // open right/bottom/top
-    // goal tile as tee open left
-    state.grid[state.goalCell.r][state.goalCell.c] = { type: 'tee', rot: 3 }; // open left/top/bottom
-    // scramble: rotate random tiles
-    for (let r = 0; r < state.rows; r++) {
-      for (let c = 0; c < state.cols; c++) {
-        const tile = state.grid[r][c];
-        tile.rot = Math.floor(Math.random() * 4);
-      }
-    }
+    state.grid[state.startCell.r][state.startCell.c] = { type: 'tee', rot: 1 };
+    state.grid[state.goalCell.r][state.goalCell.c] = { type: 'tee', rot: 3 };
+    // place empty tile bottom right
+    state.grid[state.empty.r][state.empty.c] = { type: 'empty', rot: 0 };
+    // scramble by performing valid slides from solved state
+    scrambleSlides(200);
     state.moves = 0;
     state.links = 0;
     state.time = 0;
@@ -152,6 +185,8 @@
   }
 
   function tileMask(tile) {
+    if (!tile) return 0;
+    if (tile.type === 'empty') return 0;
     const base = tileLibrary[tile.type].mask;
     return rotateMask(base, tile.rot);
   }
@@ -161,6 +196,7 @@
   }
 
   function checkSolved() {
+    if (!state.grid.length) return;
     const visited = Array.from({ length: state.rows }, () => Array(state.cols).fill(false));
     const queue = [[state.startCell.r, state.startCell.c]];
     visited[state.startCell.r][state.startCell.c] = true;
@@ -194,10 +230,59 @@
     if (visited[state.goalCell.r][state.goalCell.c]) {
       state.finished = true;
       state.score = Math.max(0, 1000 - state.moves * 5 - Math.floor(state.time) * 2);
-      cutsceneEl.style.display = 'flex';
       playTone(800, 0.2);
-      messageEl.textContent = 'Path complete! Their vow shines through the snow.';
-      overlayEl.style.pointerEvents = 'auto';
+      messageEl.textContent = 'Path complete! Align the three rings to turn gold and see Ray\'s vow. When the rings glow the "See the Vow" button will be unlocked.';
+      // randomize rings so the user must align them
+      for (let i = 0; i < 3; i++) {
+        const steps = Math.floor(Math.random() * 6);
+        state.wheel.rings[i] = (steps * segAngle()) % (Math.PI * 2);
+        state.wheel.anim[i] = null;
+      }
+      state.wheel.solved = false;
+      state.wheel.active = true;
+      if (endingBtn) {
+        endingBtn.disabled = true; // will enable after wheel solve
+        endingBtn.style.display = 'inline-flex';
+      }
+      if (overlayEl) {
+        overlayEl.style.display = 'flex';
+        overlayEl.style.pointerEvents = 'auto';
+      }
+    }
+  }
+
+  function slideTile(r, c) {
+    const er = state.empty.r;
+    const ec = state.empty.c;
+    const temp = state.grid[er][ec];
+    state.grid[er][ec] = state.grid[r][c];
+    state.grid[r][c] = temp;
+    state.empty = { r, c };
+  }
+
+  function attemptSlide(r, c) {
+    const er = state.empty.r;
+    const ec = state.empty.c;
+    if (Math.abs(er - r) + Math.abs(ec - c) !== 1) return; // must be adjacent
+    slideTile(r, c);
+    state.moves += 1;
+    playTone(520, 0.08);
+    checkSolved();
+    updateStats();
+    drawBoard(performance.now());
+  }
+
+  function scrambleSlides(count) {
+    for (let i = 0; i < count; i++) {
+      const er = state.empty.r;
+      const ec = state.empty.c;
+      const neighbors = [];
+      if (er > 0) neighbors.push({ r: er - 1, c: ec });
+      if (er < state.rows - 1) neighbors.push({ r: er + 1, c: ec });
+      if (ec > 0) neighbors.push({ r: er, c: ec - 1 });
+      if (ec < state.cols - 1) neighbors.push({ r: er, c: ec + 1 });
+      const choice = neighbors[Math.floor(Math.random() * neighbors.length)];
+      slideTile(choice.r, choice.c);
     }
   }
 
@@ -210,12 +295,18 @@
     state.time = 0;
     state.grid = [];
     state.particles = [];
+    state.wheel = { rings: [0, 0, 0], solved: false, anim: [null, null, null], active: false, glowUntil: 0 };
     startMenuEl.style.display = 'flex';
     cutsceneEl.style.display = 'none';
     startMenuEl.style.display = 'flex';
     startMenuEl.classList.remove('hidden');
     messageEl.textContent = 'Begin when ready.';
     overlayEl.style.pointerEvents = 'none';
+    overlayEl.style.display = 'none';
+    if (endingBtn) {
+      endingBtn.disabled = true;
+      endingBtn.style.display = 'inline-flex';
+    }
     updateStats();
   }
 
@@ -228,29 +319,34 @@
     state.links = 0;
     state.time = 0;
     state.particles = [];
+    state.wheel = { rings: [0, 0, 0], solved: false, anim: [null, null, null], active: false, glowUntil: 0 };
     buildGrid();
+    drawBoard(performance.now());
     startMenuEl.style.display = 'none';
     startMenuEl.classList.add('hidden');
     cutsceneEl.style.display = 'none';
+    overlayEl.style.display = 'none';
     overlayEl.style.pointerEvents = 'none';
-    messageEl.textContent = 'Rotate tiles to connect Deedra to Ray.';
+    messageEl.textContent = '';
+    if (endingBtn) {
+      endingBtn.disabled = true;
+      endingBtn.style.display = 'inline-flex';
+    }
+    drawBoard(performance.now());
     updateStats();
   }
 
   function handleClick(evt) {
     if (!state.started || state.finished) return;
     const rect = canvas.getBoundingClientRect();
-    const x = evt.clientX - rect.left - board.offsetX;
-    const y = evt.clientY - rect.top - board.offsetY;
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const x = (evt.clientX - rect.left) * scaleX - board.offsetX;
+    const y = (evt.clientY - rect.top) * scaleY - board.offsetY;
     const c = Math.floor(x / TILE_SIZE);
     const r = Math.floor(y / TILE_SIZE);
     if (r < 0 || r >= state.rows || c < 0 || c >= state.cols) return;
-    const tile = state.grid[r][c];
-    tile.rot = (tile.rot + 1) % 4;
-    state.moves += 1;
-    playTone(520, 0.08);
-    checkSolved();
-    updateStats();
+    attemptSlide(r, c);
   }
 
   function spawnHit(x, y, color) {
@@ -316,6 +412,16 @@
     const y = board.offsetY + r * TILE_SIZE;
     const mask = tileMask(tile);
     const lib = tileLibrary[tile.type];
+    if (tile.type === 'empty') {
+      ctx.fillStyle = '#0d121c';
+      ctx.strokeStyle = '#0a0a0d';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.roundRect(x + 6, y + 6, TILE_SIZE - 12, TILE_SIZE - 12, 10);
+      ctx.fill();
+      ctx.stroke();
+      return;
+    }
     const baseColor = connected ? '#f0c35b' : lib.color;
     ctx.fillStyle = baseColor;
     ctx.strokeStyle = '#0a0a0d';
@@ -354,24 +460,22 @@
   }
 
   function drawCharacters() {
-    const startX = board.offsetX + state.startCell.c * TILE_SIZE + TILE_SIZE * 0.2;
-    const startY = board.offsetY + state.startCell.r * TILE_SIZE + TILE_SIZE * 1.1;
-    const goalX = board.offsetX + state.goalCell.c * TILE_SIZE + TILE_SIZE * 0.8;
-    const goalY = board.offsetY + state.goalCell.r * TILE_SIZE + TILE_SIZE * 1.1;
-
+    // place small portraits below the board
+    const portraitSize = TILE_SIZE * 1.6;
+    const yPos = board.offsetY + board.height + 12;
     if (textures.aesSedai) {
       const img = textures.aesSedai;
-      const scale = (TILE_SIZE * 2.5) / img.height;
+      const scale = portraitSize / img.height;
       const w = img.width * scale;
       const h = img.height * scale;
-      ctx.drawImage(img, startX - w * 0.4, startY - h + 20, w, h);
+      ctx.drawImage(img, board.offsetX, yPos, w, h);
     }
     if (textures.warder) {
       const img = textures.warder;
-      const scale = (TILE_SIZE * 2.5) / img.height;
+      const scale = portraitSize / img.height;
       const w = img.width * scale;
       const h = img.height * scale;
-      ctx.drawImage(img, goalX - w * 0.6, goalY - h + 20, w, h);
+      ctx.drawImage(img, board.offsetX + board.width - w, yPos, w, h);
     }
   }
 
@@ -395,6 +499,109 @@
     ctx.fillText(`Links: ${state.links}`, 14, 44);
     ctx.fillText(`Time: ${Math.floor(state.time)}s`, 14, 66);
     ctx.fillText(`Score: ${Math.round(state.score)}`, 14, 88);
+  }
+
+  function drawWheel(ts) {
+    if (!wctx || !wheelCanvas) return;
+    const { width, height } = wheelCanvas;
+    wctx.clearRect(0, 0, width, height);
+    const cx = width / 2;
+    const cy = height / 2;
+    const baseRadius = Math.min(cx, cy) - 6;
+    const segAngle = (Math.PI * 2) / 6;
+
+    // animate rings if needed
+    for (let i = 0; i < 3; i++) {
+      const anim = state.wheel.anim[i];
+      if (anim) {
+        const t = clamp((performance.now() - anim.start) / anim.duration, 0, 1);
+        const ease = 1 - Math.pow(1 - t, 3);
+        state.wheel.rings[i] = anim.from + (anim.to - anim.from) * ease;
+        if (t >= 1) state.wheel.anim[i] = null;
+      }
+    }
+
+    // three rings
+    const radii = [baseRadius, baseRadius * 0.72, baseRadius * 0.44];
+    for (let rIndex = 0; rIndex < 3; rIndex++) {
+      const angleOffset = state.wheel.rings[rIndex];
+      const radius = radii[rIndex];
+      const aligned = (() => {
+        const v = normAngle(angleOffset);
+        return v < 0.02 || v > Math.PI * 2 - 0.02;
+      })();
+      for (let i = 0; i < 6; i++) {
+        const start = i * segAngle + angleOffset;
+        const end = start + segAngle;
+        wctx.beginPath();
+        wctx.arc(cx, cy, radius, start, end);
+        wctx.arc(cx, cy, radius * 0.7, end, start, true);
+        wctx.closePath();
+        wctx.fillStyle = aligned ? '#f5d17a' : ringColors[rIndex];
+        wctx.fill();
+        wctx.strokeStyle = 'rgba(0,0,0,0.4)';
+        wctx.lineWidth = 3;
+        wctx.stroke();
+      }
+      // spoke lines for alignment cues
+      wctx.strokeStyle = 'rgba(255,255,255,0.5)';
+      wctx.lineWidth = 2;
+      for (let i = 0; i < 6; i++) {
+        const ang = i * segAngle + state.wheel.rings[rIndex];
+        wctx.beginPath();
+        wctx.moveTo(cx, cy);
+        wctx.lineTo(cx + Math.cos(ang) * radius, cy + Math.sin(ang) * radius);
+        wctx.stroke();
+      }
+    }
+
+    // center hub
+    wctx.beginPath();
+    wctx.arc(cx, cy, radii[2] * 0.5, 0, Math.PI * 2);
+    wctx.fillStyle = '#f7f7fb';
+    wctx.fill();
+    wctx.strokeStyle = '#0a0a0d';
+    wctx.stroke();
+    wctx.fillStyle = '#0a0a0d';
+    wctx.font = '700 9px Space Grotesk, sans-serif';
+    wctx.textAlign = 'center';
+    wctx.fillText('WHEEL OF', cx, cy - 1);
+    wctx.fillText('TIME', cx, cy + 10);
+
+    // glow overlay when solved
+    if (state.wheel.glowUntil && performance.now() < state.wheel.glowUntil) {
+      const rem = (state.wheel.glowUntil - performance.now()) / 700;
+      const alpha = clamp(rem, 0, 1);
+      const grad = wctx.createRadialGradient(cx, cy, radii[2] * 0.2, cx, cy, baseRadius);
+      grad.addColorStop(0, `rgba(31,158,111,${alpha * 0.6})`);
+      grad.addColorStop(1, 'rgba(31,158,111,0)');
+      wctx.fillStyle = grad;
+      wctx.beginPath();
+      wctx.arc(cx, cy, baseRadius, 0, Math.PI * 2);
+      wctx.fill();
+    }
+
+    checkWheelSolved();
+  }
+
+  function checkWheelSolved() {
+    if (!state.wheel.active) return;
+    const aligned = state.wheel.rings.every((a) => {
+      const v = normAngle(a);
+      return v < 0.02 || v > Math.PI * 2 - 0.02;
+    });
+    if (aligned) {
+      // snap to exact alignment
+      state.wheel.rings = [0, 0, 0];
+      state.wheel.solved = true;
+      messageEl.textContent = 'The three rings align. Click See the Vow.';
+      if (endingBtn) endingBtn.disabled = false;
+      state.wheel.glowUntil = performance.now() + 700;
+      playTone(880, 0.2);
+    } else {
+      state.wheel.solved = false;
+      if (endingBtn) endingBtn.disabled = true;
+    }
   }
 
   function drawGridConnections() {
@@ -426,7 +633,13 @@
 
   function drawBoard(ts) {
     drawBackground(ts);
-    const connected = state.grid.length ? drawGridConnections() : Array.from({ length: state.rows }, () => Array(state.cols).fill(false));
+    if (!state.grid.length) return;
+    const connected = drawGridConnections();
+    // frame
+    ctx.strokeStyle = '#f7f7fb';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(board.offsetX - 6, board.offsetY - 6, board.width + 12, board.height + 12);
+
     for (let r = 0; r < state.rows; r++) {
       for (let c = 0; c < state.cols; c++) {
         drawTile(r, c, state.grid[r][c], connected[r][c]);
@@ -468,6 +681,7 @@
     gameLoop.last = now;
     update(dt);
     drawBoard(now);
+    drawWheel(now);
     requestAnimationFrame(gameLoop);
   }
 
@@ -488,7 +702,30 @@
     if (startBtn) startBtn.addEventListener('click', startGame);
     if (startMenuBtn) startMenuBtn.addEventListener('click', startGame);
     if (restartBtn) restartBtn.addEventListener('click', resetGame);
+    if (endingBtn) endingBtn.addEventListener('click', () => {
+      overlayEl.style.display = 'none';
+      cutsceneEl.style.display = 'flex';
+    });
+    const rotate = (idx) => {
+      if (state.wheel.anim[idx]) return;
+      const seg = segAngle();
+      const from = state.wheel.rings[idx];
+      const to = from + seg;
+      state.wheel.anim[idx] = { from, to, start: performance.now(), duration: 180 };
+      playTone(620 - idx * 60, 0.08);
+    };
+    if (outerBtn) outerBtn.addEventListener('click', () => rotate(0));
+    if (middleBtn) middleBtn.addEventListener('click', () => rotate(1));
+    if (innerBtn) innerBtn.addEventListener('click', () => rotate(2));
     if (canvas) canvas.addEventListener('click', handleClick);
+    // unlock audio on first user gesture
+    const unlock = () => {
+      enableAudio();
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+    };
+    window.addEventListener('pointerdown', unlock, { once: true });
+    window.addEventListener('keydown', unlock, { once: true });
   }
 
   function init() {
