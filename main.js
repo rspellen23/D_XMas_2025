@@ -19,7 +19,13 @@
 
   const textures = { aesSedai: null, warder: null, trolloc: null };
 
-  const TILE_SIZE = 80;
+  const TILE_SIZE = 96;
+  const board = {
+    offsetX: 0,
+    offsetY: 0,
+    width: 0,
+    height: 0
+  };
 
   const state = {
     started: false,
@@ -106,6 +112,14 @@
   }
 
   function buildGrid() {
+    // set canvas to fit grid
+    board.width = state.cols * TILE_SIZE;
+    board.height = state.rows * TILE_SIZE;
+    canvas.width = board.width + 200;
+    canvas.height = board.height + 200;
+    board.offsetX = (canvas.width - board.width) / 2;
+    board.offsetY = (canvas.height - board.height) / 2;
+
     state.grid = [];
     for (let r = 0; r < state.rows; r++) {
       const row = [];
@@ -226,8 +240,8 @@
   function handleClick(evt) {
     if (!state.started || state.finished) return;
     const rect = canvas.getBoundingClientRect();
-    const x = evt.clientX - rect.left;
-    const y = evt.clientY - rect.top;
+    const x = evt.clientX - rect.left - board.offsetX;
+    const y = evt.clientY - rect.top - board.offsetY;
     const c = Math.floor(x / TILE_SIZE);
     const r = Math.floor(y / TILE_SIZE);
     if (r < 0 || r >= state.rows || c < 0 || c >= state.cols) return;
@@ -298,8 +312,8 @@
 
   function drawTile(r, c, tile, connected) {
     if (!tile) return;
-    const x = c * TILE_SIZE;
-    const y = r * TILE_SIZE;
+    const x = board.offsetX + c * TILE_SIZE;
+    const y = board.offsetY + r * TILE_SIZE;
     const mask = tileMask(tile);
     const lib = tileLibrary[tile.type];
     const baseColor = connected ? '#f0c35b' : lib.color;
@@ -340,10 +354,10 @@
   }
 
   function drawCharacters() {
-    const startX = state.startCell.c * TILE_SIZE + TILE_SIZE * 0.2;
-    const startY = state.startCell.r * TILE_SIZE + TILE_SIZE * 1.1;
-    const goalX = state.goalCell.c * TILE_SIZE + TILE_SIZE * 0.8;
-    const goalY = state.goalCell.r * TILE_SIZE + TILE_SIZE * 1.1;
+    const startX = board.offsetX + state.startCell.c * TILE_SIZE + TILE_SIZE * 0.2;
+    const startY = board.offsetY + state.startCell.r * TILE_SIZE + TILE_SIZE * 1.1;
+    const goalX = board.offsetX + state.goalCell.c * TILE_SIZE + TILE_SIZE * 0.8;
+    const goalY = board.offsetY + state.goalCell.r * TILE_SIZE + TILE_SIZE * 1.1;
 
     if (textures.aesSedai) {
       const img = textures.aesSedai;
