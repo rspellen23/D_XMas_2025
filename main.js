@@ -198,6 +198,8 @@
     state.particles = [];
     startMenuEl.style.display = 'flex';
     cutsceneEl.style.display = 'none';
+    startMenuEl.style.display = 'flex';
+    startMenuEl.classList.remove('hidden');
     messageEl.textContent = 'Begin when ready.';
     overlayEl.style.pointerEvents = 'none';
     updateStats();
@@ -214,6 +216,7 @@
     state.particles = [];
     buildGrid();
     startMenuEl.style.display = 'none';
+    startMenuEl.classList.add('hidden');
     cutsceneEl.style.display = 'none';
     overlayEl.style.pointerEvents = 'none';
     messageEl.textContent = 'Rotate tiles to connect Deedra to Ray.';
@@ -294,6 +297,7 @@
   }
 
   function drawTile(r, c, tile, connected) {
+    if (!tile) return;
     const x = c * TILE_SIZE;
     const y = r * TILE_SIZE;
     const mask = tileMask(tile);
@@ -408,10 +412,10 @@
 
   function drawBoard(ts) {
     drawBackground(ts);
-    const connected = state.grid.length ? drawGridConnections() : [];
+    const connected = state.grid.length ? drawGridConnections() : Array.from({ length: state.rows }, () => Array(state.cols).fill(false));
     for (let r = 0; r < state.rows; r++) {
       for (let c = 0; c < state.cols; c++) {
-        drawTile(r, c, state.grid[r][c], connected[r]?.[c]);
+        drawTile(r, c, state.grid[r][c], connected[r][c]);
       }
     }
     drawCharacters();
@@ -454,19 +458,23 @@
   }
 
   function initEvents() {
-    toggleAudioBtn.addEventListener('click', () => {
-      state.soundOn = !state.soundOn;
-      toggleAudioBtn.textContent = `SFX: ${state.soundOn ? 'On' : 'Off'}`;
-    });
-    themeToggleBtn.addEventListener('click', () => {
-      document.body.classList.toggle('theme-light');
-      const lightOn = document.body.classList.contains('theme-light');
-      themeToggleBtn.textContent = lightOn ? 'Switch to Dark' : 'Switch to Light';
-    });
-    startBtn.addEventListener('click', startGame);
-    startMenuBtn.addEventListener('click', startGame);
-    restartBtn.addEventListener('click', resetGame);
-    canvas.addEventListener('click', handleClick);
+    if (toggleAudioBtn) {
+      toggleAudioBtn.addEventListener('click', () => {
+        state.soundOn = !state.soundOn;
+        toggleAudioBtn.textContent = `SFX: ${state.soundOn ? 'On' : 'Off'}`;
+      });
+    }
+    if (themeToggleBtn) {
+      themeToggleBtn.addEventListener('click', () => {
+        document.body.classList.toggle('theme-light');
+        const lightOn = document.body.classList.contains('theme-light');
+        themeToggleBtn.textContent = lightOn ? 'Switch to Dark' : 'Switch to Light';
+      });
+    }
+    if (startBtn) startBtn.addEventListener('click', startGame);
+    if (startMenuBtn) startMenuBtn.addEventListener('click', startGame);
+    if (restartBtn) restartBtn.addEventListener('click', resetGame);
+    if (canvas) canvas.addEventListener('click', handleClick);
   }
 
   function init() {
