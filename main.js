@@ -37,6 +37,23 @@
     soundOn: true
   };
 
+  // roundRect fallback for older browsers
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+      const radius = typeof r === 'number' ? r : 0;
+      this.beginPath();
+      this.moveTo(x + radius, y);
+      this.lineTo(x + w - radius, y);
+      this.quadraticCurveTo(x + w, y, x + w, y + radius);
+      this.lineTo(x + w, y + h - radius);
+      this.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+      this.lineTo(x + radius, y + h);
+      this.quadraticCurveTo(x, y + h, x, y + h - radius);
+      this.lineTo(x, y + radius);
+      this.quadraticCurveTo(x, y, x + radius, y);
+    };
+  }
+
   // bitmask edges: top=1, right=2, bottom=4, left=8
   const tileLibrary = {
     straight: { mask: 1 | 4, color: '#e23c64' }, // vertical, rotates to horizontal
@@ -166,7 +183,41 @@
       cutsceneEl.style.display = 'flex';
       playTone(800, 0.2);
       messageEl.textContent = 'Path complete! Their vow shines through the snow.';
+      overlayEl.style.pointerEvents = 'auto';
     }
+  }
+
+  function resetGame() {
+    state.started = false;
+    state.finished = false;
+    state.score = 0;
+    state.moves = 0;
+    state.links = 0;
+    state.time = 0;
+    state.grid = [];
+    state.particles = [];
+    startMenuEl.style.display = 'flex';
+    cutsceneEl.style.display = 'none';
+    messageEl.textContent = 'Begin when ready.';
+    overlayEl.style.pointerEvents = 'none';
+    updateStats();
+  }
+
+  function startGame() {
+    if (state.finished) return;
+    state.started = true;
+    state.finished = false;
+    state.score = 0;
+    state.moves = 0;
+    state.links = 0;
+    state.time = 0;
+    state.particles = [];
+    buildGrid();
+    startMenuEl.style.display = 'none';
+    cutsceneEl.style.display = 'none';
+    overlayEl.style.pointerEvents = 'none';
+    messageEl.textContent = 'Rotate tiles to connect Deedra to Ray.';
+    updateStats();
   }
 
   function handleClick(evt) {
