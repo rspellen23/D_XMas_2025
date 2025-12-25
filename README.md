@@ -1,11 +1,11 @@
 # D_XMas_2025 – Wheel of Christmas Time
 
-Open `index.html` in a browser to play a cel-shaded, Christmas-colored Wheel of Time mini-game starring Deedra (Aes Sedai) and Ray (her Warder). Move to dodge, channel blasts (Space), and deliver Warder slashes (F) to clear waves of Trollocs. Survive through the waves to see their romantic ending. Toggle light/dark from the corner; palette leans red/green/gold/white.
+Open `index.html` in a browser to play a cel-shaded, Christmas-colored Wheel of Time puzzle starring Deedra (Aes Sedai) and Ray (her Warder). Click tiles to rotate channel paths and connect them through the snow. Fewer moves = better score. Complete the path to see their romantic ending. Toggle light/dark from the corner; palette leans red/green/gold/white.
 
-If you add art assets, place them as:
+Art assets (auto-loaded if present):
 - `assets/deedra.png` (Aes Sedai)
 - `assets/ray.png` (Warder)
-- `assets/trolloc.png` (Trolloc)
-The game will auto-use them; it falls back to drawn shapes if missing.
+- `assets/trolloc.png` (Trolloc accent)
+If missing, the game falls back to drawn cel-shaded tiles.
 
 Tech: vanilla HTML/CSS/JS (Canvas). Works offline; no build step required.
